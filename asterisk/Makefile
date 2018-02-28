@@ -426,6 +426,15 @@ datafiles: _all
 	done
 	mkdir -p $(DESTDIR)$(AGI_DIR)
 	$(MAKE) -C sounds install
+# N4IRS
+	mkdir -p /usr/local/bin
+	for x in ../allstar/updatenodelist/*; do \
+		$(INSTALL) -m 744 $$x /usr/local/bin ; \
+	done
+
+	mkdir -p /lib/systemd/system
+	$(INSTALL) -m 744 contrib/systemd/updatenodelist.service /lib/systemd/system ; \
+	systemctl enable updatenodelist.service
 
 update: 
 	@if [ -d .svn ]; then \
@@ -672,6 +681,8 @@ config:
 		if [ -f /etc/redhat-release -o -f /etc/fedora-release ]; then \
 			$(INSTALL) -m 755 contrib/init.d/rc.redhat.asterisk $(DESTDIR)/etc/rc.d/init.d/asterisk; \
 			if [ -z "$(DESTDIR)" ]; then /sbin/chkconfig --add asterisk; fi; \
+
+
 		elif [ -f /etc/debian_version ] && [ -f /etc/systemd/system.conf ]; then \
 			$(INSTALL) -m 755 contrib/systemd/asterisk.service $(DESTDIR)/lib/systemd/system/asterisk.service; \
 			if [ -z "$(DESTDIR)" ]; then /bin/systemctl enable asterisk.service; fi; \
