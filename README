@@ -4,7 +4,10 @@ asterisk-1.4.23pre
 
 This branch will be merged into dev
 
+To submit pull requests:
 
+Clone this branch
+Make your changes
+Submit a pull request against this branch -- annotate in what you are trying to fix.  Only code submissions will be accepted.  Pull requets to fix bugs without code will be ignored/closed.
 
-
-
+If accepted, code will be pushed into a feature branch based off this for further review/development.
