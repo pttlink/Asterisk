@@ -155,8 +155,10 @@
  *          Subcode '8015' is Voice Selective Call for Maxtrac ('SC') or
  *             Astro-Saber('Call')
  *          Subcode '810D' is Call Alert (like Maxtrac 'CA')
- *  61 - Send Message to USB to control GPIO pins (cop,61,GPIO1=0[,GPIO4=1].....)
- *  62 - Send Message to USB to control GPIO pins, quietly (cop,62,GPIO1=0[,GPIO4=1].....)
+ *  61 - Send Message to USB to control GPIO pins (cop,61,GPIO1:0[,GPIO4:1].....)
+	*  Note the state also supports GPIOn=1 or GPIOn=1 for backwards compatibility. 
+ *  62 - Send Message to USB to control GPIO pins, quietly (cop,62,GPIO1:0[,GPIO4:1].....)
+	*  Note the state also supports GPIOn=1 or GPIOn=1 for backwards compatibility.
  *  63 - Send pre-configred APRSTT notification (cop,63,CALL[,OVERLAYCHR])
  *  64 - Send pre-configred APRSTT notification, quietly (cop,64,CALL[,OVERLAYCHR]) 
  *  65 - Send POCSAG page (equipped channel types only)
@@ -13016,12 +13018,13 @@ static int function_cop(struct rpt *myrpt, char *param, char *digitbuf, int comm
 			/* go thru all the specs */
 			for(i = 1; i < argc; i++)
 			{
-				if (sscanf(argv[i],"GPIO%d=%d",&j,&k) == 2)
+				/* need to support GPIOn= and GPIOn: so this can be parsed in the events subsystem */
+				if ((sscanf(argv[i],"GPIO%d=%d",&j,&k) == 2) || (sscanf(argv[i],"GPIO%d:%d",&j,&k) == 2))
 				{
 					sprintf(string,"GPIO %d %d",j,k);
 					ast_sendtext(myrpt->rxchannel,string);
 				}
-				else if (sscanf(argv[i],"PP%d=%d",&j,&k) == 2)
+				else if ((sscanf(argv[i],"PP%d=%d",&j,&k) == 2) || (sscanf(argv[i],"PP%d:%d",&j,&k) == 2))
 				{
 					sprintf(string,"PP %d %d",j,k);
 					ast_sendtext(myrpt->rxchannel,string);
