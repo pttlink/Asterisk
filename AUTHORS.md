@@ -6,7 +6,7 @@ See the latter for an explanation.
 Names should be added to this file under the respective file/module as (note email is optional here. If it
 is not listed then it should be included in the header of the corresponding file.)
  
-Stacy Olivas, KG7QIN <kg7qin@arrl.net> - Updated app_rpt.c to version 0.340.  See CHANGESLOG.md for information on changes
+> Stacy Olivas, KG7QIN <kg7qin@arrl.net> - Updated app_rpt.c to version 0.340.  See CHANGESLOG.md for information on changes
 
 ----
 
