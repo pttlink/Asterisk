@@ -1,24 +1,51 @@
-/* #define	NEW_ASTERISK */
-/*
- * Asterisk -- An open source telephony toolkit.
+/* USB Radio Channel Driver for app_rpt/Asterisk
  *
+ * chan_usbradio.c - Version 200511
+ *
+ * Copyright (C) 2007-2017, Jim Dixon, WB6NIL and AllStarLink, Inc. and contributors
+ * Copyright (C) 2018 Steve Zingman, N4IRS; Michael Zingman, N4IRR; AllStarLink, Inc. and contributors
+ * Copyright (C) 2018-2020 Stacy Olivas, KG7QIN and contributors 
+ *
+ * All Rights Reserved
+ * Licensed under the GNU GPL v2 (see below)
+ * 
+ * Refer to AUTHORS file for listing of authors/contributors to app_rpt.c and other related AllStar programs
+ * as well as individual copyrights by authors/contributors.  Unless specified or otherwise assigned, all authors and
+ * contributors retain their individual copyrights and license them freely for use under the GNU GPL v2.
+ *
+ * Notice:  Unless specifically stated in the header of this file, all changes
+ *          are licensed under the GNU GPL v2 and cannot be relicensed. 
+ *
+ * The AllStar software is the creation of Jim Dixon, WB6NIL with serious contributions by Steve RoDgers, WA6ZFT
+ * 
+ * This software is based upon and dependent upon the Asterisk - An open source telephone toolkit
  * Copyright (C) 1999 - 2005, Digium, Inc.
- * Copyright (C) 2007 - 2011, Jim Dixon
  *
- * Jim Dixon, WB6NIL <jim@lambdatel.com>
- * Steve Henke, W9SH  <w9sh@arrl.net>
- * Based upon work by Mark Spencer <markster@digium.com> and Luigi Rizzo
- *
- * See http://www.asterisk.org for more information about
- * the Asterisk project. Please do not directly contact
- * any of the maintainers of this project for assistance;
- * the project provides a web site, mailing lists and IRC
+ * See http://www.asterisk.org for more information about the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance; the project provides a web site, mailing lists and IRC
  * channels for your use.
  *
- * This program is free software, distributed under the terms of
- * the GNU General Public License Version 2. See the LICENSE file
- * at the top of the source tree.
- * 20160829      inad            added rxlpf rxhpf txlpf txhpf
+ * License:
+ * --------
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ *
+ * ------------------------------------------------------------------------
+ * This program is free software, distributed under the terms of the GNU General Public License Version 2. See the LICENSE file
+ * at the top of the source tree for more information.
+ *
+ *
  */
 
 /*! \file
@@ -37,6 +64,8 @@
         <defaultenabled>yes</defaultenabled>
  ***/
 
+/* #define      NEW_ASTERISK */
+
 #include "asterisk.h"
 
 /*
@@ -44,7 +73,7 @@
  * use the simple format YYMMDD
 */
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 180112 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 200511 $")
 // ASTERISK_FILE_VERSION(__FILE__, "$"ASTERISK_VERSION" $")
 
 #include <stdio.h>
@@ -170,11 +199,14 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 180112 $")
 #define N1KDO_PRODUCT_ID  	0x6a00
 #define C108_HID_INTERFACE	3
 
+#define C119B_ADJUSTMENT	870
+
 #define HID_REPORT_GET		0x01
 #define HID_REPORT_SET		0x09
 
 #define HID_RT_INPUT		0x01
 #define HID_RT_OUTPUT		0x02
+
 
 #define	EEPROM_START_ADDR	6
 #define	EEPROM_END_ADDR		63
@@ -892,12 +924,22 @@ static int make_spkr_playback_value(struct chan_usbradio_pvt *o,int val)
 {
 int	v,rv;
 
-	v = (val * o->spkrmax) / 1000;
-	/* if just the old one, do it the old way */
-	if (o->devtype == C108_PRODUCT_ID) return v;
-	rv = (o->spkrmax + lround(20.0 * log10((float)(v + 1) / (float)(o->spkrmax + 1)) / 0.25));
-	if (rv < 0) rv = 0;
-	return rv;	
+	switch (o->devtype)
+	{
+		case C108_PRODUCT_ID:
+			v = (val * o->spkrmax) / 1000;
+			return v;
+		case C119B_PRODUCT_ID:
+			v = (val * o->spkrmax) / 750;
+			rv = (o->spkrmax + lround(10.0 * log10((float)(v + 1) / (float)(o->spkrmax + 1)) / 0.25));
+			if (rv < 0) rv = 0;
+			return rv;
+		default:
+			v = (val * o->spkrmax) / 1000;
+			rv = (o->spkrmax + lround(20.0 * log10((float)(v + 1) / (float)(o->spkrmax + 1)) / 0.25));
+			if (rv < 0) rv = 0;
+			return rv;
+	}
 }
 
 /* Call with:  devnum: alsa major device number, param: ascii Formal
@@ -1684,8 +1726,16 @@ static void *hidthread(void *arg)
 			o->pmrChan->rxCpuSaver=o->rxcpusaver;
 			o->pmrChan->txCpuSaver=o->txcpusaver;
 
-			*(o->pmrChan->prxSquelchAdjust) = 
-				((999 - o->rxsquelchadj) * 32767) / 1000;
+			switch (o->devtype)
+			{
+				case C119B_PRODUCT_ID:
+	                                *(o->pmrChan->prxSquelchAdjust) =
+						((999 - o->rxsquelchadj) * 32767) / C119B_ADJUSTMENT;
+					break;
+				default:
+					*(o->pmrChan->prxSquelchAdjust) = 
+						((999 - o->rxsquelchadj) * 32767) / 1000;
+			}
 
 			*(o->pmrChan->prxVoiceAdjust)=o->rxvoiceadj*M_Q8;
 			*(o->pmrChan->prxCtcssAdjust)=o->rxctcssadj*M_Q8;
@@ -3428,6 +3478,7 @@ static int radio_tune(int fd, int argc, char *argv[])
 {
 	struct chan_usbradio_pvt *o = find_desc(usbradio_active);
 	int i=0;
+	int x;
 
 	if ((argc < 2) || (argc > 4))
 		return RESULT_SHOWUSAGE; 
@@ -3503,7 +3554,15 @@ static int radio_tune(int fd, int argc, char *argv[])
 			if ((i < 0) || (i > 999)) return RESULT_SHOWUSAGE;
 			ast_cli(fd,"Changed Squelch setting to %d\n",i);
 			o->rxsquelchadj = i;
-			*(o->pmrChan->prxSquelchAdjust)= ((999 - i) * 32767) / 1000;
+			switch (o->devtype)
+			{
+				case C119B_PRODUCT_ID:
+					x = C119B_ADJUSTMENT;
+					break;
+				default:
+				       	x = 1000;
+			}
+			*(o->pmrChan->prxSquelchAdjust)= ((999 - i) * 32767) / x;
 		}
 	}
 	else if (!strcasecmp(argv[2],"txvoice")) {
@@ -3700,7 +3759,8 @@ static int radio_tune(int fd, int argc, char *argv[])
 	setting range is 0.0 to 0.9
 */
 static int set_txctcss_level(struct chan_usbradio_pvt *o)
-{							  
+{						
+	int x;	
 	if (o->txmixa == TX_OUT_LSD)
 	{
 //		o->txmixaset=(151*o->txctcssadj) / 1000;
@@ -3718,7 +3778,15 @@ static int set_txctcss_level(struct chan_usbradio_pvt *o)
 	else
 	{
 		if(o->pmrChan->ptxCtcssAdjust){ /* Ignore if ptr not defined */
-			*o->pmrChan->ptxCtcssAdjust=(o->txctcssadj * M_Q8) / 1000;
+			switch (o->devtype)
+			{
+				case C119B_PRODUCT_ID:
+					x = C119B_ADJUSTMENT;
+					break;
+				default:
+					x = 1000;
+			}
+                        *o->pmrChan->ptxCtcssAdjust=(o->txctcssadj * M_Q8) / x;			
 		}
 	}
 	return 0;
@@ -4075,6 +4143,7 @@ static void tune_rxinput(int fd, struct chan_usbradio_pvt *o, int setsql, int in
 	int tolerance=2750;
 	int setting=0, tries=0, tmpdiscfactor, meas, measnoise;
 	float settingmax,f;
+	int x;
 
 	if(o->rxdemod==RX_AUDIO_SPEAKER && o->rxcdtype==CD_XPMR_NOISE)
 	{
@@ -4175,9 +4244,18 @@ static void tune_rxinput(int fd, struct chan_usbradio_pvt *o, int setsql, int in
 		ast_cli(fd,"INFO: RX INPUT ADJUST SUCCESS.\n");
 		o->rxmixerset=((setting * 1000) + (o->micmax / 2)) / o->micmax;
 
+		switch (o->devtype)
+		{
+			case C119B_PRODUCT_ID:
+				x = C119B_ADJUSTMENT;
+				break;
+			default:
+				x = 1000;
+		}
+
 		if(o->rxcdtype==CD_XPMR_NOISE)
 		{
-			int normRssi=((32767-o->pmrChan->rxRssi)*1000/32767);
+			int normRssi=((32767-o->pmrChan->rxRssi)*x/32767);			
 
 			if((meas/(measnoise/10))>26){
 				ast_cli(fd,"WARNING: Insufficient high frequency noise from receiver.\n");
@@ -4192,7 +4270,10 @@ static void tune_rxinput(int fd, struct chan_usbradio_pvt *o, int setsql, int in
 			{
 				o->rxsquelchadj = normRssi + 150;
 				if (o->rxsquelchadj > 999) o->rxsquelchadj = 999;
+				*(o->pmrChan->prxSquelchAdjust)= ((999 - o->rxsquelchadj) * 32767) / x;
+/*
 				*(o->pmrChan->prxSquelchAdjust)= ((999 - o->rxsquelchadj) * 32767) / 1000;
+*/
 				ast_cli(fd,"Rx Squelch set to %d (RSSI=%d).\n",o->rxsquelchadj,normRssi);
 			}
 			else 
@@ -4294,11 +4375,22 @@ static void _menu_rxvoice(int fd, struct chan_usbradio_pvt *o, char *str)
 	else
 	{
 		o->rxmixerset = i;
-		setamixer(o->devicenum,MIXER_PARAM_MIC_CAPTURE_VOL,
-			o->rxmixerset * o->micmax / 1000,0);
+		switch (o->devtype)
+		{
+			case C119B_PRODUCT_ID:
+				x = o->rxmixerset * o->micmax / C119B_ADJUSTMENT;
+				/* get interval step size */
+	                	f = 870.0 / (float) o->micmax;
+				o->rxboostset = 1;
+				break;
+			default:
+				x = o->rxmixerset * o->micmax / 1000;
+                                /* get interval step size */
+                                f = 1000.0 / (float) o->micmax;
+		}
+                setamixer(o->devicenum,MIXER_PARAM_MIC_CAPTURE_VOL,x,0);		
 		setamixer(o->devicenum,MIXER_PARAM_MIC_BOOST,o->rxboostset,0);
-		/* get interval step size */
-		f = 1000.0 / (float) o->micmax;
+
 		o->rxvoiceadj = 0.5 + (modff(((float) i) / f,&f1) * .093981);
 	}
 	*(o->pmrChan->prxVoiceAdjust)=o->rxvoiceadj * M_Q8;
@@ -4354,7 +4446,15 @@ int	i,x;
 	}
 	ast_cli(fd,"Changed Rx Squelch Level setting to %d\n",i);
 	o->rxsquelchadj = i;
-	*(o->pmrChan->prxSquelchAdjust)= ((999 - i) * 32767) / 1000;
+	switch (o->devtype)
+	{
+		case C119B_PRODUCT_ID:
+			x = C119B_ADJUSTMENT;
+			break;
+		default:
+			x = 1000;
+	}
+	*(o->pmrChan->prxSquelchAdjust)= ((999 - i) * 32767) / x;
 	return;
 }
 
@@ -4753,6 +4853,7 @@ static void tune_rxctcss(int fd, struct chan_usbradio_pvt *o,int intflag)
 
 	float setting;
 	int tries=0,meas;
+	int x;
 
 	ast_cli(fd,"INFO: RX CTCSS ADJUST START.\n");
 	ast_cli(fd,"target=%i tolerance=%i \n",target,tolerance);
@@ -4810,7 +4911,15 @@ static void tune_rxctcss(int fd, struct chan_usbradio_pvt *o,int intflag)
 			o->pmrChan->b.tuning=0;
 			return;
 		}
-		normRssi=((32767-o->pmrChan->rxRssi)*1000/32767);
+		switch (o->devtype)
+		{
+			case C119B_PRODUCT_ID:
+				x = C119B_ADJUSTMENT;
+				break;
+			default:
+				x = 1000;
+		}
+		normRssi=((32767-o->pmrChan->rxRssi)*x/32767);
 
 		if(o->rxsquelchadj>normRssi)
 			ast_cli(fd,"WARNING: RSSI=%i SQUELCH=%i and is too tight. Use 'radio tune rxsquelch'.\n",normRssi,o->rxsquelchadj);
@@ -4871,6 +4980,8 @@ static void tune_write(struct chan_usbradio_pvt *o)
 //
 static void mixer_write(struct chan_usbradio_pvt *o)
 {
+	int x;
+
 	setamixer(o->devicenum,MIXER_PARAM_MIC_PLAYBACK_SW,0,0);
 	if (o->duplex3)
 	{
@@ -4886,8 +4997,16 @@ static void mixer_write(struct chan_usbradio_pvt *o)
 	setamixer(o->devicenum,(o->newname) ? MIXER_PARAM_SPKR_PLAYBACK_VOL_NEW : MIXER_PARAM_SPKR_PLAYBACK_VOL,
 		make_spkr_playback_value(o,o->txmixaset),
 		make_spkr_playback_value(o,o->txmixbset));
-	setamixer(o->devicenum,MIXER_PARAM_MIC_CAPTURE_VOL,
-		o->rxmixerset * o->micmax / 1000,0);
+	switch (o->devtype)
+	{
+		case C119B_PRODUCT_ID:
+			x = o->rxmixerset * o->micmax / C119B_ADJUSTMENT;
+			o->rxboostset = 1;
+			break;
+		default:
+			x = o->rxmixerset * o-> micmax / 1000;
+	}
+	setamixer(o->devicenum,MIXER_PARAM_MIC_CAPTURE_VOL,x,0);
 	setamixer(o->devicenum,MIXER_PARAM_MIC_BOOST,o->rxboostset,0);
 	setamixer(o->devicenum,MIXER_PARAM_MIC_CAPTURE_SW,1,0);
 }
@@ -4897,14 +5016,25 @@ static void mixer_write(struct chan_usbradio_pvt *o)
 static void mult_set(struct chan_usbradio_pvt *o)
 {
 
-	if(o->pmrChan->spsTxOutA) {
-		o->pmrChan->spsTxOutA->outputGain = 
-			mult_calc((o->txmixaset * 152) / 1000);
+	int x;
+	switch (o->devtype)
+	{
+		case C119B_PRODUCT_ID:
+			x = C119B_ADJUSTMENT;
+			break;
+		default:
+			x = 1000;
+
+	}
+        if(o->pmrChan->spsTxOutA) {
+		o->pmrChan->spsTxOutA->outputGain =
+			mult_calc((o->txmixaset * 152) / x);
 	}
 	if(o->pmrChan->spsTxOutB){
-		o->pmrChan->spsTxOutB->outputGain = 
-			mult_calc((o->txmixbset * 152) / 1000);
+		o->pmrChan->spsTxOutB->outputGain =
+			mult_calc((o->txmixbset * 152) / x);
 	}
+
 }
 //
 // input 0 - 151 outputs are pot and multiplier
@@ -5473,8 +5603,16 @@ static struct chan_usbradio_pvt *store_config(struct ast_config *cfg, char *ctg,
 		o->pmrChan->rxCpuSaver=o->rxcpusaver;
 		o->pmrChan->txCpuSaver=o->txcpusaver;
 
-		*(o->pmrChan->prxSquelchAdjust) = 
-			((999 - o->rxsquelchadj) * 32767) / 1000;
+		switch (o->devtype)
+		{
+			case C119B_PRODUCT_ID:
+	                        *(o->pmrChan->prxSquelchAdjust) =
+        	                        ((999 - o->rxsquelchadj) * 32767) / C119B_ADJUSTMENT;
+				break;
+			default:
+				*(o->pmrChan->prxSquelchAdjust) = 
+					((999 - o->rxsquelchadj) * 32767) / 1000;
+		}
 
 		*(o->pmrChan->prxVoiceAdjust)=o->rxvoiceadj*M_Q8;
 		*(o->pmrChan->prxCtcssAdjust)=o->rxctcssadj*M_Q8;

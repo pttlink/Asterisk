@@ -1,22 +1,50 @@
 /* #define	NEW_ASTERISK */
-/*
- * Copyright (C) 2016, Jim Dixon
+/* DMK Engineering "PITA" Boaard Channel Driver for app_rpt/Asterisk
  *
- * Asterisk -- An open source telephony toolkit.
+ * chan_pi.c - Version 200511
+ *
+ * Copyright (C) 2016 Jim Dixon, WB6NIL and AllStarLink, Inc. and contributors
+ * Copyright (C) 2018 Steve Zingman, N4IRS; Michael Zingman, N4IRR; AllStarLink, Inc. and contributors
+ *
+ * All Rights Reserved
+ * Licensed under the GNU GPL v2 (see below)
+ * 
+ * Refer to AUTHORS file for listing of authors/contributors to app_rpt.c and other related AllStar programs
+ * as well as individual copyrights by authors/contributors.  Unless specified or otherwise assigned, all authors and
+ * contributors retain their individual copyrights and license them freely for use under the GNU GPL v2.
+ *
+ * Notice:  Unless specifically stated in the header of this file, all changes
+ *          are licensed under the GNU GPL v2 and cannot be relicensed. 
+ *
+ * The AllStar software is the creation of Jim Dixon, WB6NIL with serious contributions by Steve RoDgers, WA6ZFT
+ * 
+ * This software is based upon and dependent upon the Asterisk - An open source telephone toolkit
  * Copyright (C) 1999 - 2005, Digium, Inc.
  *
- * Jim Dixon, WB6NIL <jim@lambdatel.com>
- * Based upon work by Mark Spencer <markster@digium.com> and Luigi Rizzo
- *
- * See http://www.asterisk.org for more information about
- * the Asterisk project. Please do not directly contact
- * any of the maintainers of this project for assistance;
- * the project provides a web site, mailing lists and IRC
+ * See http://www.asterisk.org for more information about the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance; the project provides a web site, mailing lists and IRC
  * channels for your use.
  *
- * This program is free software, distributed under the terms of
- * the GNU General Public License Version 2. See the LICENSE file
-  * at the top of the source tree.
+ * License:
+ * --------
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ *
+ * ------------------------------------------------------------------------
+ * This program is free software, distributed under the terms of the GNU General Public License Version 2. See the LICENSE file
+ * at the top of the source tree for more information.
+ *
  */
 
 /*! \file
@@ -40,7 +68,7 @@
  * use the simple format YYMMDD
 */
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 180112 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 200511 $")
 // ASTERISK_FILE_VERSION(__FILE__, "$"ASTERISK_VERSION" $")
 
 #include <stdio.h>
@@ -59,6 +87,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 180112 $")
 #include <alsa/asoundlib.h>
 #include <linux/i2c-dev.h>		//Needed for I2C port
 #include <math.h>
+
 
 #define DEBUG_CAPTURES	 		1
 

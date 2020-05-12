@@ -1,22 +1,49 @@
-/*
- * Asterisk -- An open source telephony toolkit.
+/* GNU Radio Interface Channel Driver for app_rpt/Asterisk
  *
+ * chan_usrp.c - Version 200511
+ *
+ * Copuright (C) 2010 Max Parke, KA1RBI
+ * Copyright (C) 2019 Michael Zingman, N4IRR and contributors
+ *
+ * All Rights Reserved
+ * Licensed under the GNU GPL v2 (see below)
+ * 
+ * Refer to AUTHORS file for listing of authors/contributors to app_rpt.c and other related AllStar programs
+ * as well as individual copyrights by authors/contributors.  Unless specified or otherwise assigned, all authors and
+ * contributors retain their individual copyrights and license them freely for use under the GNU GPL v2.
+ *
+ * Notice:  Unless specifically stated in the header of this file, all changes
+ *          are licensed under the GNU GPL v2 and cannot be relicensed. 
+ *
+ * The AllStar software is the creation of Jim Dixon, WB6NIL with serious contributions by Steve RoDgers, WA6ZFT
+ * 
+ * This software is based upon and dependent upon the Asterisk - An open source telephone toolkit
  * Copyright (C) 1999 - 2006, Digium, Inc.
  *
- * Copyright (C) 2008, Jim Dixon
- * Jim Dixon <jim@lambdatel.com>
- *
- * USRP interface Copyright (C) 2010, KA1RBI
- *
- * See http://www.asterisk.org for more information about
- * the Asterisk project. Please do not directly contact
- * any of the maintainers of this project for assistance;
- * the project provides a web site, mailing lists and IRC
+ * See http://www.asterisk.org for more information about the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance; the project provides a web site, mailing lists and IRC
  * channels for your use.
  *
- * This program is free software, distributed under the terms of
- * the GNU General Public License Version 2. See the LICENSE file
- * at the top of the source tree.
+ * License:
+ * --------
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ *
+ * ------------------------------------------------------------------------
+ * This program is free software, distributed under the terms of the GNU General Public License Version 2. See the LICENSE file
+ * at the top of the source tree for more information.
+ *
  */
 
 /*! \file
@@ -31,7 +58,7 @@
 /*** MODULEINFO
  ***/
 
-/* Version 0.1, 12/15/2010
+/* Version 0.1.1, 11/15/2019
 
 Channel connection for Asterisk to GNU Radio/USRP
 
@@ -49,7 +76,7 @@ MYPORT (optional) is the UDP socket that Asterisk listens on for this channel
  * use the simple format YYMMDD
 */
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 180112 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 200511 $")
 // ASTERISK_FILE_VERSION(__FILE__, "$"ASTERISK_VERSION" $")
 
 #include <stdio.h>
@@ -432,15 +459,33 @@ static struct ast_frame  *usrp_xread(struct ast_channel *ast)
 				fprintf(stderr, "repeater_chan_usrp: possible data loss, expected seq %lu received %lu\n", p->rxseq, seq);
 			}
 			p->rxseq = seq + 1;
-			// TODO: add DTMF, TEXT processing
+			// TODO: add DTMF. TEXT processing added N4IRR
 			if (datalen == USRP_VOICE_FRAME_SIZE) {
 				qp = ast_malloc(sizeof(struct usrp_rxq));
 				if (!qp)
 				{
 					ast_log(LOG_NOTICE,"Cannot malloc for qp\n");
 				} else {
-					memcpy(qp->buf,bufdata,USRP_VOICE_FRAME_SIZE);
+                                       if (bufhdrp->type == USRP_TYPE_TEXT) {
 					insque((struct qelem *) qp,(struct qelem *) p->rxq.qe_back);
+                                               char buf1[320];
+                                               strcpy(buf1, bufdata);
+                                               memset(&fr,0,sizeof(fr));
+                                               fr.data =  buf1;
+                                               fr.datalen = strlen(buf1) + 1;
+                                               fr.samples = 0;
+                                               fr.frametype = AST_FRAME_TEXT;
+                                               fr.subclass = 0;
+                                               fr.src = "chan_usrp";
+                                               fr.offset = 0;
+                                               fr.mallocd=0;
+                                               fr.delivery.tv_sec = 0;
+                                               fr.delivery.tv_usec = 0;
+                                               ast_queue_frame(ast,&fr);
+                                       } else {
+                                               memcpy(qp->buf,bufdata,USRP_VOICE_FRAME_SIZE);
+                                               insque((struct qelem *) qp,(struct qelem *) p->rxq.qe_back);
+                                       }
 				}
 			}
 		}
