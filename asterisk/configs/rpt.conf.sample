@@ -3,6 +3,28 @@
 
 ; Your Repeater
 
+[globals]
+
+;conslock=0		; 0=off / 1=limited/ 2=locked - locks rpt global set use on console
+;maxlinks=128		; can be 32 to 256
+;notchfilter=0		; 0=off/ 1=on
+;medencode=0		; 0=off/ 1=on
+;mdcdecode=0		; 0=off/ 1=on
+;localchannels=0	; 0=off/ 1=on
+;fakeserial=0		; 0=off/ 1=on
+;noremotemdc=0		; 0=off/ 1=on
+;nocdrpost=0		; 0=off/ 1=on
+;mdcsay=0		; 0=off/ 1=on
+;linkclip=0		; 0=off/ 1=on
+;zoption=0		; 0=off/ 1=on
+;alttune=0		; 0=off/ 1=on
+;linkdtmf=0		; 0=off/ 1=on
+;setic706ctcss=0	; 0=off/ 1=on
+;dtmftimeout=3		; change dtmf timeout interval (3- )
+statpost=1   		; 0 = off; 1= AllStar; 2= custom (set statpost_url line)
+;statpost_url=		; set to custom statpost_url if statpost=2 (above)
+net_if=ens192 		; set to name of ethernet interface for sayip to use
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 [1999]					; Change this to your assigned node number 
@@ -174,17 +196,13 @@ startup_macro =
 
 ; *** Status Reporting ***
 
-; Uncomment either group following two statpost lines to report the status of your node to stats.allstarlink.org
-; depending on whether you are running ACID, Debian or Limey Linux.
-; The difference is simply where your wget is located.
+;Set the following to override the global statpost behavior
+;0=off; 1=on when globals are off
+;statpost_override=1
 
-; ** For ACID and Debian ***
-;statpost_program = /usr/bin/wget,-q,--timeout=15,--tries=1,--output-document=/dev/null                       
-;statpost_url = http://stats.allstarlink.org/uhandler.php ; Status updates 
-
-; ** For Limey Linux **
-;statpost_program = /bin/wget,-q,--timeout=15,--tries=1,--output-document=/dev/null                       
-;statpost_url = http://stats.allstarlink.org/uhandler.php ; Status updates 
+;set to 1 to use custom statpost url for this node only
+;statpost_custom=0			; If left blank it will default to using the globa satpost
+;statpost_url=<url to custom handler>	; Set to a valid URL if overriding (e.g, http://stats.allstarlink.org/uhandler.php)
 
 [functions]
 
