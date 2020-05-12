@@ -14,6 +14,7 @@ AllStar is based upon the Asterisk Open Source PBX software by Digium.
 
 ASL 1.01 and later are based upon Asterisk 1.4.23 which has the following license/copyright:
 
+```
   /*
    * Asterisk -- An open source telephony toolkit.
    *
@@ -31,6 +32,7 @@ ASL 1.01 and later are based upon Asterisk 1.4.23 which has the following licens
    * the GNU General Public License Version 2. See the LICENSE file
    * at the top of the source tree.
    */
+```
 
 Note:  AllStarLink, Inc was assigned Jim Dixon, WB6NIL's copyright by his remaining heir.
 
@@ -50,70 +52,70 @@ between each version of app_rpt.c released.
 
 ----
 
-* app_rpt.c:
+#### app_rpt.c:
  
-Jim Dixon, WB6NIL - Original author
-Steve Rodgers, WA6ZFT - Major contributor to program development
-Steve Heinke, W9SH - Major contributor to program development
-Steve Zingman, N4IRS - Major fixes/updates to software for DIAL and ASL 1.01 release
-Michael Zingman, N4IRR - Major fixes/updates to software for DIAL and ASL 1.01 release
-Adam Paulm KC1KCC - Ported ducking code over from XIPAR release of app_rpt.c
-Stacy Olivas, KG7QIN - bumped version to 0.340.  See CHANGELOG.md for complete list for changes.
+ - Jim Dixon, WB6NIL - Original author
+ - Steve Rodgers, WA6ZFT - Major contributor to program development
+ - Steve Heinke, W9SH - Major contributor to program development
+ - Steve Zingman, N4IRS - Major fixes/updates to software for DIAL and ASL 1.01 release
+ - Michael Zingman, N4IRR - Major fixes/updates to software for DIAL and ASL 1.01 release
+ - Adam Paulm KC1KCC - Ported ducking code over from XIPAR release of app_rpt.c
+ - Stacy Olivas, KG7QIN - bumped version to 0.340.  See CHANGELOG.md for complete list for changes.
 
-* app_gps.c:
+#### app_gps.c:
 
-Jim Dixon, WB6NIL - Original author
+ - Jim Dixon, WB6NIL - Original author
 
-* chan_beagle.c:
+#### chan_beagle.c:
 
-Jim Dixon, WB6NIL - Original author
-Steve Zingman, N4IRS - Major fixes/updates to software for DIAL and ASL 1.01 release
-Michael Zingman, N4IRR - Major fixes/updates to software for DIAL and ASL 1.01 release
+ - Jim Dixon, WB6NIL - Original author
+ - Steve Zingman, N4IRS - Major fixes/updates to software for DIAL and ASL 1.01 release
+ - Michael Zingman, N4IRR - Major fixes/updates to software for DIAL and ASL 1.01 release
 
-* chan_echolink.c:
+#### chan_echolink.c:
 
-Scott Lawson, KI4LKF - Original author
+ - Scott Lawson, KI4LKF - Original author
 
-* chan_pi.c:
+#### chan_pi.c:
 
-Jim Dixon, WB6NIL - Original author
-Steve Zingman, N4IRS - Fixes/updates to software for DIAL and ASL 1.01 release
-Michael Zingman, N4IRR - Fixes/updates to software for DIAL and ASL 1.01 release
+ - Jim Dixon, WB6NIL - Original author
+ - Steve Zingman, N4IRS - Fixes/updates to software for DIAL and ASL 1.01 release
+ - Michael Zingman, N4IRR - Fixes/updates to software for DIAL and ASL 1.01 release
 
-* chan_simpleusb.c:
+#### chan_simpleusb.c:
 
-Jim Dixon, WB6NIL - Original author
-Steve Zingman, N4IRS - Fixes/updates to software for DIAL and ASL 1.01 release
-Michael Zingman, N4IRR - Fixes/updates to software for DIAL and ASL 1.01 release
-Stacy Olivas, KG7QIN - CM119B fixes, options to override detected (force) chip type
+ - Jim Dixon, WB6NIL - Original author
+ - Steve Zingman, N4IRS - Fixes/updates to software for DIAL and ASL 1.01 release
+ - Michael Zingman, N4IRR - Fixes/updates to software for DIAL and ASL 1.01 release
+ - Stacy Olivas, KG7QIN - CM119B fixes, options to override detected (force) chip type
 
-* chan_tlb.c:
+#### chan_tlb.c:
 
-Scott Lawson, KI4LKF - Original author (copyright)
-Jim Dixon, Wb6NIL - Author credits in source
+ - Scott Lawson, KI4LKF - Original author (copyright)
+ - Jim Dixon, Wb6NIL - Author credits in source
 
-* chan_usbradio.c:
+#### chan_usbradio.c:
 
-Jim Dixon, WB6NIL - Original author
-Steve Henke, W9SH - Major contributions and included xpmr routines from XELATEC, LLC's Xipar release.
-Steve Zingman, N4IRS - Fixes/updates to software for DIAL and ASL 1.01 release
-Michael Zingman, N4IRR - Fixes/updates to software for DIAL and ASL 1.01 release
-Stacy Olivas, KG7QIN - CM119B fixes 
+ - Jim Dixon, WB6NIL - Original author
+ - Steve Henke, W9SH - Major contributions and included xpmr routines from XELATEC, LLC's Xipar release.
+ - Steve Zingman, N4IRS - Fixes/updates to software for DIAL and ASL 1.01 release
+ - Michael Zingman, N4IRR - Fixes/updates to software for DIAL and ASL 1.01 release
+ - Stacy Olivas, KG7QIN - CM119B fixes 
 
-* chan_usrp.c:
+#### chan_usrp.c:
 
-Max Parke, KA1RBI - Original author (copyright)
-Jim Dixon, WB6NIL - Author credits in source
-Michael Zingman, N4IRR - Added text support
+ - Max Parke, KA1RBI - Original author (copyright)
+ - Jim Dixon, WB6NIL - Author credits in source
+ - Michael Zingman, N4IRR - Added text support
 
-* chan_voter.c:
+#### chan_voter.c:
 
-Jim Dixon, WB6NIL - Original author
-Steve Zingman, N4IRS - Fixes/updates to software for DIAL and ASL 1.01 release
-Michael Zingman, N4IRR - Fixes/updates to software for DIAL and ASL 1.01 release
+ - Jim Dixon, WB6NIL - Original author
+ - Steve Zingman, N4IRS - Fixes/updates to software for DIAL and ASL 1.01 release
+ - Michael Zingman, N4IRR - Fixes/updates to software for DIAL and ASL 1.01 release
 
-* asl-menu
+#### asl-menu
 
-Nathan Hardman, N8THN - Original author
+ - Nathan Hardman, N8THN - Original author
 
 
