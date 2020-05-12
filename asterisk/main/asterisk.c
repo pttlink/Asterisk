@@ -136,13 +136,18 @@ int daemon(int, int);  /* defined in libresolv of all places */
 #define AST_MAX_CONNECTS 128
 #define NUM_MSGS 64
 
+#define ASL_RELVER "1.02"
+#define ASL_RELDATE "05/11/2020"
+
 /*! \brief Welcome message when starting a CLI interface */
 #define WELCOME_MESSAGE \
         ast_verbose("\n"); \
-	ast_verbose("AllStarLink Asterisk Version 1.01 2/13/2018 "ASTERISK_VERSION"\n"); \
-        ast_verbose("Copyright (C) 1999 - 2018 Digium, Inc. Jim Dixon, AllStarLink Inc. and others.\n"); \
-	ast_verbose("Created by Mark Spencer <markster@digium.com>\n"); \
-	ast_verbose("Asterisk comes with ABSOLUTELY NO WARRANTY; type 'core show warranty' for details.\n"); \
+	ast_verbose("AllStarLink Asterisk Version "ASL_RELVER" "ASL_RELDATE" "ASTERISK_VERSION"\n"); \
+        ast_verbose("Copyright (C) 1999 - 2020 Digium, Inc., AllStarLink, Inc., and contributors\n(type 'core show asl' for details)\n"); \
+	ast_verbose("Based on Asterisk 1.4.23 (C) 1999 - 2007 Digium, Inc.\n"); \
+	ast_verbose("All Rights Reserved\n\n"); \
+	ast_verbose("Created by Mark Spencer <markster@digium.com>\n\n"); \
+	ast_verbose("Asterisk comes with ABSOLUTELY NO WARRANTY; type 'core show warranty' for details.\n\n"); \
 	ast_verbose("This is free software, with components licensed under the GNU General Public\n"); \
 	ast_verbose("License version 2 and other licenses; you are welcome to redistribute it under\n"); \
 	ast_verbose("certain conditions. Type 'core show license' for details.\n"); \
@@ -1497,6 +1502,10 @@ static char show_license_help[] =
 "Usage: core show license\n"
 "	Shows the license(s) for this copy of Asterisk.\n";
 
+static char show_aslauthors_help[] =
+"Usage: core show asl\n"
+"       Shows information regarding authors/contributors to AllStarLink Asterisk.\n";
+
 static char version_help[] =
 "Usage: core show version\n"
 "       Shows Asterisk version information.\n";
@@ -1658,6 +1667,34 @@ static int show_license(int fd, int argc, char *argv[])
 	return RESULT_SUCCESS;
 }
 
+static const char *aslauthors_lines[] = {
+	"\n",
+	"Based upon Asterisk 1.4.23 Copyright (C) 1999-2007 Digium, Inc.\n\n",
+	"The AllStar software componets are subject to the following additional copyrights:\n",
+	"Copyright (C) 1999-2017 by Jim Dixon, WB6NIL; AllStarLink, Inc. and contributors\n",
+	"Copyright (C) 2018 by AllStarLink Inc, and contributors\n",
+	"Copyright (C) 2018-2019 by Steve Zingman, N4IRS; Michael Zingman, N4IRR and contributors\n",
+	"Copyright (C) 2018-2020 by Stacy Olivas, KG7QIN and contributors\n\n",
+	"All Rights Reserved\n",
+	"\nThe AllStar software components are licensed under the GNU GPL version 2.\n",
+	"\nSee the AUTHORS.md and CONTRIBUTORS.md file in the source tree for details on authors and copyrights\n",
+	"to various modules that are part of the AllStar and AllStarLink Asterisk software.\n\n",
+};
+
+static int show_aslauthors(int fd, int argc, char *argv[])
+{
+	int x;
+
+	ast_cli(fd, "\n\nAllStarLink Asterisk Version "ASL_RELVER" "ASL_RELDATE" "ASTERISK_VERSION"\n");
+
+        for (x = 0; x < sizeof(aslauthors_lines) / sizeof(aslauthors_lines[0]); x++)
+                ast_cli(fd, (char *) aslauthors_lines[x]);
+
+        return RESULT_SUCCESS;
+
+}
+
+
 #define ASTERISK_PROMPT "*CLI> "
 
 #define ASTERISK_PROMPT2 "%s*CLI> "
@@ -1719,6 +1756,10 @@ static struct ast_cli_entry cli_asterisk[] = {
 	{ { "core", "show", "license", NULL },
 	show_license, "Show the license(s) for this copy of Asterisk",
 	show_license_help },
+
+	{ { "core", "show", "asl", NULL },
+	show_aslauthors, "Shows information regarding authors/contributors to AllStarLink Asterisk",
+	show_aslauthors_help },
 
 	{ { "core", "show", "version", NULL },
 	handle_version, "Display version info",
