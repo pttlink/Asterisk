@@ -5823,7 +5823,8 @@ int	i;
  */
 static void statpost(struct rpt *myrpt,char *pairs)
 {
-char *str,*astr,*bstr;
+char str[300],astr[300],bstr[300];
+char result[20]="";
 int success = 0;
 time_t	now;
 unsigned int seq;
@@ -5858,17 +5859,6 @@ AST_DECLARE_APP_ARGS(args,
 			return;
 	}
 
-	// If set, use per node statpost_url or fallback to globally defined statpost_url
-	if(myrpt->p.statpost_custom>0)
-		str = ast_malloc(strlen(pairs) + strlen(myrpt->p.statpost_url) + 200);
-	else
-		str = ast_malloc(strlen(pairs) + strlen(rpt_globals.statpost_url) + 200);
-
-	if(!str) {
-		ast_log(LOG_ERROR, "Statpost update failed to allocate memory!\n");
-		return;
-	}
-
 	ast_mutex_lock(&myrpt->statpost_lock);
 	seq = ++myrpt->statpost_seqno;
 	ast_mutex_unlock(&myrpt->statpost_lock);
@@ -5879,25 +5869,11 @@ AST_DECLARE_APP_ARGS(args,
 	if (pairs) sprintf(str + strlen(str),"&%s",pairs);
 
 	if(rpt_globals.statpost==1) {
-		astr = ast_strdup(rpt_globals.statpost_url);
+		ast_copy_string(astr,rpt_globals.statpost_url,sizeof(astr)-1);
 		if(debug >= 128) ast_log(LOG_NOTICE, "Using global statpost URL: %s\n", rpt_globals.statpost_url);
 	} else {
-		astr = ast_strdup(myrpt->p.statpost_url);
+		ast_copy_string(astr,myrpt->p.statpost_url,sizeof(astr)-1);
 		if(debug >= 128) ast_log(LOG_NOTICE, "Using node %s statpost URL: %s\n", myrpt->name, myrpt->p.statpost_url);
-	}
-
-	if(!astr) {
-		ast_log(LOG_ERROR,"Statpost URL is empty!  Please check rpt.conf\n");
-		ast_log(LOG_ERROR,"Global URL: %s\nNode %s URL: %s\n", rpt_globals.statpost_url, myrpt->name, myrpt->p.statpost_url);
-		ast_free(str);
-		return;
-	}
-
-	bstr=ast_malloc(strlen(str)+strlen(astr)+200);
-	if(!bstr) {
-		ast_log(LOG_ERROR, "Statpost update failed to allocate memory!\n");
-		ast_free(str);
-		return;
 	}
 
 	sprintf(bstr,"%s%s", astr, str);
@@ -5914,7 +5890,8 @@ AST_DECLARE_APP_ARGS(args,
 			chunk.memory[chunk.size] = '\0';
 			if(chunk.memory[chunk.size -1] == 10)
 				chunk.memory[chunk.size -1] = '\0';
-			ast_copy_string(str,chunk.memory,20);
+			ast_copy_string(result,chunk.memory,sizeof(result)-1);
+			if(debug >= 128) ast_log(LOG_NOTICE, "Statpost return: %s\n\n", result);
 			ast_free(chunk.memory);
 		}
 	}
@@ -5925,9 +5902,6 @@ AST_DECLARE_APP_ARGS(args,
 		ast_log(LOG_ERROR, "[!] URL: %s\n", astr);
 		ast_log(LOG_ERROR, "[!] Telem data: %s\n\n", str);
 	}
-	//ast_free(bstr);
-	ast_free(astr);
-	ast_free(str);
 	return;
 }
 
