@@ -247,7 +247,7 @@ static unsigned char * _enc_str(unsigned char *data)
 }
 
 int mdc_encoder_set_packet(mdc_encoder_t *encoder,
-                           unsigned char op,
+                           unsigned short op,
 			   unsigned char arg,
 			   unsigned short unitID)
 {

@@ -1,21 +1,45 @@
 /* #define	OLD_ASTERISK */
 /*
- * Asterisk -- An open source telephony toolkit.
+ * app_gps.c - based upon Asterisk -- An open source telephony toolkit.
  *
+ * Copyright (C) 2010-2017, Jim Dixon, WB6NIL and AllStarLink, Inc. and contributors
+ * Copyright (C) 2018 AllStarLink, Inc. and contributors
+ *
+ * All Rights Reserved
+ * Licensed under the GNU GPL v2 (see below)
+ * 
+ * Refer to AUTHORS file for listing of authors/contributors to app_rpt.c and other related AllStar programs
+ * as well as individual copyrights by authors/contributors.  Unless specified or otherwise assigned, all authors and
+ * contributors retain their individual copyrights and license them freely for use under the GNU GPL v2.
+ *
+ * The AllStar software is the creation of Jim Dixon, WB6NIL with serious contributions by Steve RoDgers, WA6ZFT
+ * 
+ * This software is based upon and dependent upon the Asterisk - An open source telephone toolkit
  * Copyright (C) 1999 - 2006, Digium, Inc.
  *
- * Copyright (C) 2010, Jim Dixon/WB6NIL
- * Jim Dixon, WB6NIL <jim@lambdatel.com>
- *
- * See http://www.asterisk.org for more information about
- * the Asterisk project. Please do not directly contact
- * any of the maintainers of this project for assistance;
- * the project provides a web site, mailing lists and IRC
+ * See http://www.asterisk.org for more information about the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance; the project provides a web site, mailing lists and IRC
  * channels for your use.
  *
- * This program is free software, distributed under the terms of
- * the GNU General Public License Version 2. See the LICENSE file
- * at the top of the source tree.
+ * License:
+ * --------
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ *
+ * ------------------------------------------------------------------------
+ * This program is free software, distributed under the terms of the GNU General Public License Version 2. See the LICENSE file
+ * at the top of the source tree for more information.
  */
 
 /*! \file
@@ -131,7 +155,6 @@ z - WinAPRS
 | - reserved (Stream Switch)
 } - diamond 
 ~ - reserved (Stream Switch)
-
 */
 
 #include "asterisk.h"
@@ -156,6 +179,7 @@ z - WinAPRS
 #include <termios.h>
 #include <math.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 
 #include "asterisk/lock.h"
 #include "asterisk/channel.h"
@@ -168,6 +192,14 @@ z - WinAPRS
 #include "asterisk/app.h"
 #include "asterisk/translate.h"
 #include "asterisk/cli.h"
+
+/*
+ * Please change this revision number when you make a edit
+ * use the simple format YYMMDD (better for sort)
+*/
+
+ASTERISK_FILE_VERSION(__FILE__, "$Revision 200511")
+// ASTERISK_FILE_VERSION(__FILE__, "$"ASTERISK_VERSION" $")
 
 #ifdef OLD_ASTERISK
 #define ast_free free
