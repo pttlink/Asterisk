@@ -78,7 +78,7 @@ mdc_encoder_t * mdc_encoder_new(int sampleRate);
 
 */
 int mdc_encoder_set_packet(mdc_encoder_t *encoder,
-                           unsigned char op,      
+                           unsigned short op,      
                            unsigned char arg,
                            unsigned short unitID);
 
