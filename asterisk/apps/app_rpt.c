@@ -2045,10 +2045,10 @@ static int curl_internal(struct MemoryStruct *chunk, char *url, char *post)
                         return -1;
 
 		skzy = strstr(tdesc, "version");
-		sprintf(curl_agent_string, "%s (-; Linux %s; gcc %s)",crl_agnt,sysinfo.cvers, __VERSION__); 
+		sprintf(curl_agent_string, "%s (-; Linux %s)",crl_agnt,sysinfo.cvers); 
                 if(skzy) 
                 	if(sscanf(skzy, "version %d.%d", &vmajor, &vminor) == 2) 
-				sprintf(curl_agent_string, "%s (app_rpt v%d.%d; Linux %s; gcc %s)",crl_agnt,vmajor,vminor,sysinfo.cvers, __VERSION__);
+				sprintf(curl_agent_string, "%s (app_rpt v%d.%d; Linux %s)",crl_agnt,vmajor,vminor,sysinfo.cvers);
 
 		curl_easy_setopt(*curl, CURLOPT_NOSIGNAL, 1);
 
