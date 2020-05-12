@@ -6427,7 +6427,7 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 
 	val = (char *) ast_variable_retrieve(cfg,this,"statpost_override");
 	if (val) rpt_vars[n].p.statpost_override = atoi(val);
-		else rpt_vars[n].p.statpost_override = 0;
+		else rpt_vars[n].p.statpost_override = 99;
 
 	if(rpt_vars[n].p.statpost_custom>0) {
 		val = (char *) ast_variable_retrieve(cfg,this,"statpost_url");
@@ -7012,6 +7012,7 @@ static int rpt_do_utils(int fd, int argc, char *argv[])
 	int i;
 	char myip[100] = "";
 	char myiface[25] = "";
+	char node[20] ="";
 	struct in_addr ia;
 
 
@@ -7067,14 +7068,18 @@ static int rpt_do_utils(int fd, int argc, char *argv[])
 
 		/* Query site for remote IP address */
 		struct MemoryStruct chunk = { NULL, 0 };
-	        AST_DECLARE_APP_ARGS(args,
+	        AST_DECLARE_APP_ARGS(cargs,
         	        AST_APP_ARG(url);
 	                AST_APP_ARG(postdata);
 	        );
 
-		AST_STANDARD_APP_ARGS(args,rpt_globals.remoteip_url);
-		
-		if(!curl_internal(&chunk,args.url,args.postdata )) 
+		AST_STANDARD_APP_ARGS(cargs,rpt_globals.remoteip_url);
+
+		if(argc >3) {
+			strncpy(node,argv[3],19);
+		}	
+	
+		if(!curl_internal(&chunk,cargs.url,cargs.postdata )) 
 		{
 			if(chunk.memory) 
 			{
@@ -7097,12 +7102,13 @@ static int rpt_do_utils(int fd, int argc, char *argv[])
 					}
 	                	} else
 				{
-					if (!strcmp(argv[3],"0")) 
-						return RESULT_SUCCESS;
+					if(!strcmp(node,"0"))
+                		                return RESULT_SUCCESS;
+
 	                        	/* check for specific node to play it back on */
 	                        	for(i=0; i<nrpts; i++)
 					{
-	                                	if(!strcmp(argv[3], rpt_vars[i].name))
+	                                	if(!strcmp(node, rpt_vars[i].name))
 						{
 	                                        	struct rpt *myrpt = &rpt_vars[i];
 	                                        	rpt_telemetry(myrpt,ALPHANUM_LOCAL,myip);
