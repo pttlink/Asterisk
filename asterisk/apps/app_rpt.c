@@ -1518,6 +1518,7 @@ static struct rpt_globals_pvt rpt_globals = {
 struct sysinfo_pvt {
 	char vers[200];
 	char cvers[40];
+	char myip[50];
 } __attribute__((aligned));
 
 static struct sysinfo_pvt sysinfo = { 
@@ -1993,6 +1994,7 @@ struct MemoryStruct {
         char *memory;
         size_t size;
 };
+
 static void *myrealloc(void *ptr, size_t size)
 {
         /* There might be a realloc() out there that doesn't like reallocing
@@ -2323,7 +2325,8 @@ static struct telem_defaults tele_defs[] = {
 	{"cmdmode","|t(900,904,200,2048)"},
 	{"functcomplete","|t(1000,0,100,2048)(0,0,100,0)(1000,0,100,2048)"},
 	{"remcomplete","|t(650,0,100,2048)(0,0,100,0)(650,0,100,2048)(0,0,100,0)(650,0,100,2048)"},
-	{"pfxtone","|t(350,440,30000,3072)"}
+	{"pfxtone","|t(350,440,30000,3072)"},
+	{"remip","|t(550,300,150,2048)(350,880,150,2048)(900,904,75,3072)(900,904,75,3072)"}
 } ;
 
 static inline void goertzel_sample(goertzel_state_t *s, short sample)
@@ -6957,10 +6960,40 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	ast_mutex_unlock(&rpt_vars[n].lock);
 }
 
+// Lookup public IP and return it, or 0 if error
+static const char *public_ip( char *ip)
+{
+        char *myip = ip;
+	char tmp[200]="";
+        struct MemoryStruct chunk = { NULL, 0 };
+        AST_DECLARE_APP_ARGS(piargs,
+                AST_APP_ARG(url);
+                AST_APP_ARG(postdata);
+        );
+        AST_STANDARD_APP_ARGS(piargs,rpt_globals.remoteip_url);
+        strcpy(ip,"\0");
+        if(!curl_internal(&chunk,piargs.url,piargs.postdata ))
+        {
+            if(chunk.memory)
+            {
+                  chunk.memory[chunk.size] = '\0';
+                  if(chunk.memory[chunk.size -1] == 10)
+                         chunk.memory[chunk.size -1] = '\0';
+                  ast_copy_string(tmp,chunk.memory,20);
+                  ast_free(chunk.memory);
+
+            }
+
+        }
+	strncpy(myip,tmp,20);
+        return ip;
+}
+
 static void get_sys_info (void)
 {
 	FILE *fp;
 	char tmp[200];
+	char myip[50]="";
 	fp = fopen("/proc/version", "r");
 	if(!fp) return;
 	if((!fgets(tmp,sizeof(tmp)-1, fp)))
@@ -6973,6 +7006,8 @@ static void get_sys_info (void)
 	{
 		strcpy(sysinfo.cvers,"Unknown");
 	}
+	public_ip(myip);
+	strncpy(sysinfo.myip,myip,20);
 	return;
 }
 
@@ -7037,7 +7072,7 @@ static int rpt_do_utils(int fd, int argc, char *argv[])
         /* Get remote IP say it locally */
         if(!strcasecmp(argv[2], "PUBIP"))
         {
-                if(argc < 3)
+                if(argc < 4)
                         return RESULT_SHOWUSAGE;
 
 		/* Query site for remote IP address */
@@ -7063,6 +7098,7 @@ static int rpt_do_utils(int fd, int argc, char *argv[])
 				ast_copy_string(myip,chunk.memory,20);
 				ast_free(chunk.memory);
 	
+				strncpy(sysinfo.myip,myip,20);
 	       	         	/* Show IP on console */
 				ast_cli(fd, "\n* Public IP address is %s\n\n", myip);
 
@@ -7076,8 +7112,7 @@ static int rpt_do_utils(int fd, int argc, char *argv[])
 					}
 	                	} else
 				{
-					if(!strcmp(node,"0"))
-                		                return RESULT_SUCCESS;
+					if((strlen(node) == 1) && (node[0] == '0')) return RESULT_SUCCESS;
 
 	                        	/* check for specific node to play it back on */
 	                        	for(i=0; i<nrpts; i++)
@@ -11274,33 +11309,14 @@ treataslocal:
 	    case REMIP:
 	    case REMIP_LOCAL:
                 if (wait_interval(myrpt, DLY_TELEM, mychannel) == -1) break;
-                struct MemoryStruct chunk = { NULL, 0 };
-		/* Query site for remote IP address */
-		if(debug >= 128) ast_log(LOG_WARNING, "Attempting to fetch public IP from %s\n\n", rpt_globals.remoteip_url);
-		AST_DECLARE_APP_ARGS(args,
-                        AST_APP_ARG(url);
-                        AST_APP_ARG(postdata);
-                );
-                AST_STANDARD_APP_ARGS(args,rpt_globals.remoteip_url);
-
-		if(!curl_internal(&chunk,args.url,args.postdata ))
-                {
-                	if(chunk.memory)
-                	{
-                        	chunk.memory[chunk.size] = '\0';
-                                if(chunk.memory[chunk.size -1] == 10)
-                                        chunk.memory[chunk.size -1] = '\0';
-                                ast_copy_string(myip,chunk.memory,20);
-                                ast_free(chunk.memory);	
-
-	                        /* Show IP on console */
-	                        ast_log(LOG_NOTICE, "[*] Public IP address is %s\n\n", myip);
-				saynode(myrpt,mychannel,myrpt->name);
-				sayfile(mychannel, "system");
-				saycharstr(mychannel, "ip");
-				sayfile(mychannel, "is-set-to");
-				saycharstr(mychannel, myip);
-			}
+		res = telem_lookup(myrpt, mychannel, myrpt->name, "remip");
+		if(strlen(sysinfo.myip)>0) {
+	        	ast_log(LOG_NOTICE, "[*] Public IP address is %s\n\n", sysinfo.myip);
+			saynode(myrpt,mychannel,myrpt->name);
+			sayfile(mychannel, "system");
+			saycharstr(mychannel, "ip");
+			sayfile(mychannel, "is-set-to");
+			saycharstr(mychannel, sysinfo.myip);
 		} else {
 			ast_log(LOG_ERROR, "Failed to fetch Public IP address\n\n");
 			sayfile(mychannel, "tt-somethingwrong");
@@ -13206,12 +13222,15 @@ static int function_status(struct rpt *myrpt, char *param, char *digitbuf, int c
 			rpt_telemetry(myrpt, STATS_TIME_LOCAL, NULL);
 			return DC_COMPLETE;
 		case 20: /* Say remote IP (global) */
-			rpt_telemetry(myrpt, REMIP, NULL);
+			rpt_telem_select(myrpt,command_source,mylink);
+			rpt_telemetry(myrpt, REMIP, mylink);
 			return DC_COMPLETE;
 		case 21: /* Say remote IP (local only)*/
-			rpt_telemetry(myrpt, REMIP_LOCAL, NULL);
+			rpt_telem_select(myrpt,command_source,mylink);
+			rpt_telemetry(myrpt, REMIP_LOCAL, mylink);
 			return DC_COMPLETE;
 		case 22: /* Say loca IP of first ethernet interface or as specific in [global] of rpt.conf */
+			rpt_telem_select(myrpt,command_source,mylink);
 			rpt_telemetry(myrpt, SAYIP_LOCAL, NULL);
 			return DC_COMPLETE;
 		case 99: /* GPS data announced locally */
