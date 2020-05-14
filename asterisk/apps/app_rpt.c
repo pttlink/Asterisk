@@ -2326,7 +2326,9 @@ static struct telem_defaults tele_defs[] = {
 	{"functcomplete","|t(1000,0,100,2048)(0,0,100,0)(1000,0,100,2048)"},
 	{"remcomplete","|t(650,0,100,2048)(0,0,100,0)(650,0,100,2048)(0,0,100,0)(650,0,100,2048)"},
 	{"pfxtone","|t(350,440,30000,3072)"},
-	{"remip","|t(550,300,150,2048)(350,880,150,2048)(900,904,75,3072)(900,904,75,3072)"}
+	{"remip","|t(550,300,150,2048)(350,880,150,2048)(900,904,75,3072)(900,904,75,3072)"},
+	{"sayip","|t(950,0,330,2048)(1400,0,330,2048)(1800,0,330,3072)(0,0,150,0)"}
+
 } ;
 
 static inline void goertzel_sample(goertzel_state_t *s, short sample)
@@ -5832,34 +5834,122 @@ int success = 0;
 time_t	now;
 unsigned int seq;
 struct MemoryStruct chunk = { NULL, 0 };
-AST_DECLARE_APP_ARGS(args,
-	AST_APP_ARG(url);
-	AST_APP_ARG(postdata););
 
-	// Turned off globally, no per node override
-	if(rpt_globals.statpost==0 && myrpt->p.statpost_override==0) return;
+	switch(rpt_globals.statpost) {
+		case 0:  // Globally we are disabled, how about on a per node basis?
+			switch(myrpt->p.statpost_override) {
+				case 0: // No node reporting
+					if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
+					return;
 
-	// Enabled globally, turned off for this node
-	if(myrpt->p.statpost_override==0) {
-		if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
-		return;
+				case 1: // Let node report
+					switch (myrpt->p.statpost_custom) {
+						case 1: // Use custom stats server url for this node
+							if(strlen(myrpt->p.statpost_url)>0) {
+								 ast_copy_string(astr,myrpt->p.statpost_url,299);
+								 success=1;
+							} else {
+								ast_log(LOG_ERROR, "No statpost for node %s:  statpost_custom is set, node statpost_url is blank!\n\n", myrpt->name);
+								return;
+							}
+							break;
+
+						default: // No custom stats server url specified for this node
+	                                                ast_copy_string(astr,ASL_STATPOST_URL,299);
+	                                                success=1;
+							break;
+					}
+					break;
+				case 32: // Node's statpost_override was never set, log that to the console and don't report
+					ast_log(LOG_ERROR, "No statpost for node %s: statpost_override not defined in node stanza!\n\n", myrpt->name);
+					return;
+
+				case 128:  // Private node reporting
+					if(strtoul(myrpt->name,NULL,10) < 2000) {
+						if(myrpt->p.statpost_custom == 2) {
+							if(strlen(myrpt->p.statpost_url)>0) {
+								ast_log(LOG_NOTICE, "Statpost reporting for private node %s\n\n", myrpt->name);
+								ast_copy_string(astr,myrpt->p.statpost_url,299);
+								success=1;
+							}
+						}
+					}
+					break;
+
+				default:  // Treat all other values like 0 or not set
+					if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
+					return; 
+			}
+			break;
+
+		case 1:  // Use ASL Stats server
+			switch(myrpt->p.statpost_override) {
+				case 0: // No reporting this node
+					if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
+					return;
+
+				case 128: // Private node reporting
+					if(strtoul(myrpt->name,NULL,10) < 2000) {
+						if(myrpt->p.statpost_custom == 2) {
+							if(strlen(myrpt->p.statpost_url)>0) {
+								ast_log(LOG_NOTICE, "Statpost reporting for private node %s\n\n", myrpt->name);
+	                                                        ast_copy_string(astr,myrpt->p.statpost_url,299);
+	                                                        success=1;
+							}
+						}
+					}
+
+					break;
+
+				default: // Use ASL Stats server
+					ast_copy_string(astr,ASL_STATPOST_URL,299);
+					success=1;
+					break;
+			}
+			break;
+
+		case 2:  // Use custom stats server
+			switch(myrpt->p.statpost_override) {
+				case 0:  // No reporting this node
+					if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
+					return;
+
+				case 32: // Node's statpost_override was never set, log that to the console and don't report
+					ast_log(LOG_ERROR, "No statpost for node %s: statpost_override not defined in node stanza!\n\n", myrpt->name);
+					return;;
+
+				case 128: // Private node reporting
+					if(strtoul(myrpt->name,NULL,10) < 2000 ) {
+						if(myrpt->p.statpost_custom == 2) {
+							if(strlen(myrpt->p.statpost_url)>0) {
+								ast_log(LOG_NOTICE, "Statpost reporting for private node %s\n\n", myrpt->name);
+                                                                ast_copy_string(astr,myrpt->p.statpost_url,299);
+                                                                success=1;
+							}
+						}
+					}
+					break;
+
+				default:  // Use custom stats reporting server
+					if(strlen(rpt_globals.statpost_url)>0) {
+						ast_copy_string(astr,rpt_globals.statpost_url,299);
+						success=1;
+					} else {
+						ast_log(LOG_ERROR,"No statpost for node %s: global statpost_custom is set, global statpost_url is blank!\n\n", myrpt->name);
+						return;
+					}
+					break;
+			}			
+			break;
+
+		default:  // Um, something broke and we shouldn't be here
+			success=0;
+			break;
 	}
 
-	// If custom is set, do we have a URL?
-	if(myrpt->p.statpost_custom>0)
-		if (!myrpt->p.statpost_url) 
-		{
-			if(debug >= 128) ast_log(LOG_WARNING,"No statpost for node %s: node statpost_custom is set, node statpost_url is blank\n\n", myrpt->name);
-			return;
-		}
-
-	// Enabled globally, if node is a private node is it enabled using a custom statpost_url for node?
-	if(strtoul(myrpt->name,NULL,10) < 2000) 
-	{
-		if ((myrpt->p.statpost_override==128) && (myrpt->p.statpost_custom==2) && !(!myrpt->p.statpost_url))
-			ast_log(LOG_NOTICE,"Statpost reporting for private node %s\n\n", myrpt->name);
-		else
-			return;
+	if(success == 0) {
+		ast_log(LOG_ERROR, "[!] Statpost update for node %s failed due to unsupported configuration!\n\n",myrpt->name);
+		return;
 	}
 
 	ast_mutex_lock(&myrpt->statpost_lock);
@@ -5871,20 +5961,17 @@ AST_DECLARE_APP_ARGS(args,
 
 	if (pairs) sprintf(str + strlen(str),"&%s",pairs);
 
-	if(rpt_globals.statpost==1) {
-		ast_copy_string(astr,rpt_globals.statpost_url,sizeof(astr)-1);
-		if(debug >= 128) ast_log(LOG_NOTICE, "Using global statpost URL: %s\n", rpt_globals.statpost_url);
-	} else {
-		ast_copy_string(astr,myrpt->p.statpost_url,sizeof(astr)-1);
-		if(debug >= 128) ast_log(LOG_NOTICE, "Using node %s statpost URL: %s\n", myrpt->name, myrpt->p.statpost_url);
-	}
+	AST_DECLARE_APP_ARGS(args,
+		AST_APP_ARG(url);
+		AST_APP_ARG(postdata););
 
 	sprintf(bstr,"%s%s", astr, str);
 
 	AST_STANDARD_APP_ARGS(args, bstr);
 	if(debug >= 64)
-		ast_log(LOG_NOTICE, "Performing statpost update. URL %s  Telem Data: %s\n\n", astr, str);
+		ast_log(LOG_NOTICE, "Performing statpost update for node %s. URL %s  Telem Data: %s\n\n", myrpt->name, astr, str);
 
+	success=0;
 	if(!curl_internal(&chunk,args.url,args.postdata ))
 	{
 		if(chunk.memory)
@@ -5901,7 +5988,7 @@ AST_DECLARE_APP_ARGS(args,
 
 	if(!success)
 	{
-		ast_log(LOG_ERROR, "[!] Statpost update failed.\n");
+		ast_log(LOG_ERROR, "[!] Statpost update failed for node %s.\n", myrpt->name);
 		ast_log(LOG_ERROR, "[!] URL: %s\n", astr);
 		ast_log(LOG_ERROR, "[!] Telem data: %s\n\n", str);
 	}
@@ -6367,14 +6454,14 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 		memset(&rpt_vars[n].filters,0,sizeof(rpt_vars[n].filters));
 	}
 	val = (char *) ast_variable_retrieve(cfg,this,"context");
-	if (val) rpt_vars[n].p.ourcontext = val;
+	if (val) rpt_vars[n].p.ourcontext = ast_strdup(val);
 	else rpt_vars[n].p.ourcontext = this;
 	val = (char *) ast_variable_retrieve(cfg,this,"callerid");
-	if (val) rpt_vars[n].p.ourcallerid = val;
+	if (val) rpt_vars[n].p.ourcallerid = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"accountcode");
-	if (val) rpt_vars[n].p.acctcode = val;
+	if (val) rpt_vars[n].p.acctcode = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"idrecording");
-	if (val) rpt_vars[n].p.ident = val;
+	if (val) rpt_vars[n].p.ident = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"hangtime");
 	if (val) rpt_vars[n].p.hangtime = atoi(val);
 		else rpt_vars[n].p.hangtime = (ISRANGER(rpt_vars[n].name) ? 1 : HANGTIME);
@@ -6402,13 +6489,14 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	if (val) rpt_vars[n].p.statpost_custom = atoi(val);
 		else rpt_vars[n].p.statpost_custom = 0;
 
+	// Default in case it isn't specified.
+	rpt_vars[n].p.statpost_override = 32;
 	val = (char *) ast_variable_retrieve(cfg,this,"statpost_override");
 	if (val) rpt_vars[n].p.statpost_override = atoi(val);
-		else rpt_vars[n].p.statpost_override = 99;
 
 	if(rpt_vars[n].p.statpost_custom>0) {
 		val = (char *) ast_variable_retrieve(cfg,this,"statpost_url");
-		if (val) rpt_vars[n].p.statpost_url = val;
+		if (val) rpt_vars[n].p.statpost_url = ast_strdup(val);
 			else {
 				rpt_vars[n].p.statpost_custom = 0;
 				ast_log(LOG_ERROR,"statpost_custom set for node %s, statpost_url blank or missing.  Disabling statpost_custom for node.\n\n", rpt_vars[n].name);
@@ -6423,7 +6511,7 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	j  = retrieve_astcfgint(&rpt_vars[n],this, "elke", 0, 40000000, 0);
 	rpt_vars[n].p.elke  = j * 1210;
 	val = (char *) ast_variable_retrieve(cfg,this,"tonezone");
-	if (val) rpt_vars[n].p.tonezone = val;
+	if (val) rpt_vars[n].p.tonezone = ast_strdup(val);
 	rpt_vars[n].p.tailmessages[0] = 0;
 	rpt_vars[n].p.tailmessagemax = 0;
 	val = (char *) ast_variable_retrieve(cfg,this,"tailmessagelist");
@@ -6431,22 +6519,22 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	rpt_vars[n].p.aprstt = (char *) ast_variable_retrieve(cfg,this,"aprstt");
 	val = (char *) ast_variable_retrieve(cfg,this,"memory");
 	if (!val) val = MEMORY;
-	rpt_vars[n].p.memory = val;
+	rpt_vars[n].p.memory = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"morse");
 	if (!val) val = MORSE;
-	rpt_vars[n].p.morse = val;
+	rpt_vars[n].p.morse = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"telemetry");
 	if (!val) val = TELEMETRY;
-	rpt_vars[n].p.telemetry = val;
+	rpt_vars[n].p.telemetry = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"macro");
 	if (!val) val = MACRO;
-	rpt_vars[n].p.macro = val;
+	rpt_vars[n].p.macro = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"tonemacro");
 	if (!val) val = TONEMACRO;
-	rpt_vars[n].p.tonemacro = val;
+	rpt_vars[n].p.tonemacro = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"mdcmacro");
 	if (!val) val = MDCMACRO;
-	rpt_vars[n].p.mdcmacro = val;
+	rpt_vars[n].p.mdcmacro = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"startup_macro");
 	if (val) rpt_vars[n].p.startupmacro = val;
 	val = (char *) ast_variable_retrieve(cfg,this,"iobase");
@@ -6456,32 +6544,32 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	if ((!val) || (sscanf(val,"%i",&rpt_vars[n].p.iobase) != 1))
 		rpt_vars[n].p.iobase = DEFAULT_IOBASE;
 	val = (char *) ast_variable_retrieve(cfg,this,"ioport");
-	rpt_vars[n].p.ioport = val;
+	rpt_vars[n].p.ioport = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"functions");
 	if (!val)
 		{
 			val = FUNCTIONS;
 			rpt_vars[n].p.simple = 1;
 		} 
-	rpt_vars[n].p.functions = val;
+	rpt_vars[n].p.functions = ast_strdup(val);
 	val =  (char *) ast_variable_retrieve(cfg,this,"link_functions");
-	if (val) rpt_vars[n].p.link_functions = val;
+	if (val) rpt_vars[n].p.link_functions = ast_strdup(val);
 	else 
 		rpt_vars[n].p.link_functions = rpt_vars[n].p.functions;
 	val = (char *) ast_variable_retrieve(cfg,this,"phone_functions");
-	if (val) rpt_vars[n].p.phone_functions = val;
+	if (val) rpt_vars[n].p.phone_functions = ast_strdup(val);
 	else if (ISRANGER(rpt_vars[n].name)) rpt_vars[n].p.phone_functions = rpt_vars[n].p.functions;
 	val = (char *) ast_variable_retrieve(cfg,this,"dphone_functions");
-	if (val) rpt_vars[n].p.dphone_functions = val;
+	if (val) rpt_vars[n].p.dphone_functions = ast_strdup(val);
 	else if (ISRANGER(rpt_vars[n].name)) rpt_vars[n].p.dphone_functions = rpt_vars[n].p.functions;
 	val = (char *) ast_variable_retrieve(cfg,this,"alt_functions");
-	if (val) rpt_vars[n].p.alt_functions = val;
+	if (val) rpt_vars[n].p.alt_functions = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"funcchar");
 	if (!val) rpt_vars[n].p.funcchar = FUNCCHAR; else 
-		rpt_vars[n].p.funcchar = *val;		
+		rpt_vars[n].p.funcchar = *ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"endchar");
 	if (!val) rpt_vars[n].p.endchar = ENDCHAR; else 
-		rpt_vars[n].p.endchar = *val;		
+		rpt_vars[n].p.endchar = *ast_strdup(val);		
 	val = (char *) ast_variable_retrieve(cfg,this,"nobusyout");
 	if (val) rpt_vars[n].p.nobusyout = ast_true(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"notelemtx");
@@ -6494,10 +6582,10 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	if (val) rpt_vars[n].p.linktolink = ast_true(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"nodes");
 	if (!val) val = NODES;
-	rpt_vars[n].p.nodes = val;
+	rpt_vars[n].p.nodes = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"extnodes");
 	if (!val) val = EXTNODES;
-	rpt_vars[n].p.extnodes = val;
+	rpt_vars[n].p.extnodes = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"extnodefile");
 	if (!val) val = EXTNODEFILE;
 	rpt_vars[n].p.extnodefilesn = 
@@ -6509,9 +6597,9 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	val = (char *) ast_variable_retrieve(cfg,this,"ldisc");
 	if (val) rpt_vars[n].p.nldisc = explode_string(strupr(ast_strdup(val)),rpt_vars[n].p.ldisc,MAX_LSTUFF,',',0);
 	val = (char *) ast_variable_retrieve(cfg,this,"patchconnect");
-	rpt_vars[n].p.patchconnect = val;
+	rpt_vars[n].p.patchconnect = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"archivedir");
-	if (val) rpt_vars[n].p.archivedir = val;
+	if (val) rpt_vars[n].p.archivedir = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"authlevel");
 	if (val) rpt_vars[n].p.authlevel = atoi(val); 
 	else rpt_vars[n].p.authlevel = 0;
@@ -6522,7 +6610,7 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	if (val) rpt_vars[n].p.parrottime = atoi(val); 
 	else rpt_vars[n].p.parrottime = PARROTTIME;
 	val = (char *) ast_variable_retrieve(cfg,this,"rptnode");
-	rpt_vars[n].p.rptnode = val;
+	rpt_vars[n].p.rptnode = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"mars");
 	if (val) rpt_vars[n].p.remote_mars = atoi(val); 
 	else rpt_vars[n].p.remote_mars = 0;
@@ -6570,24 +6658,24 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	if (!val) val = DEFAULT_LINKMONGAIN;
 	rpt_vars[n].p.linkmongain = pow(10.0,atof(val) / 20.0);
 	val = (char *) ast_variable_retrieve(cfg,this,"discpgm");
-	rpt_vars[n].p.discpgm = val; 
+	rpt_vars[n].p.discpgm = ast_strdup(val); 
 	val = (char *) ast_variable_retrieve(cfg,this,"connpgm");
-	rpt_vars[n].p.connpgm = val;
+	rpt_vars[n].p.connpgm = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"mdclog");
-	rpt_vars[n].p.mdclog = val;
+	rpt_vars[n].p.mdclog = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"lnkactenable");
 	if (val) rpt_vars[n].p.lnkactenable = ast_true(val);
 	else rpt_vars[n].p.lnkactenable = 0;
 	rpt_vars[n].p.lnkacttime = retrieve_astcfgint(&rpt_vars[n],this, "lnkacttime", -120, 90000, 0);	/* Enforce a min max including zero */
 	val = (char *) ast_variable_retrieve(cfg, this, "lnkactmacro");
-	rpt_vars[n].p.lnkactmacro = val;
+	rpt_vars[n].p.lnkactmacro = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg, this, "lnkacttimerwarn");
-	rpt_vars[n].p.lnkacttimerwarn = val;
+	rpt_vars[n].p.lnkacttimerwarn = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg, this, "nolocallinkct");
 	rpt_vars[n].p.nolocallinkct = ast_true(val);
 	rpt_vars[n].p.rptinacttime = retrieve_astcfgint(&rpt_vars[n],this, "rptinacttime", -120, 90000, 0);	/* Enforce a min max including zero */
 	val = (char *) ast_variable_retrieve(cfg, this, "rptinactmacro");
-	rpt_vars[n].p.rptinactmacro = val;
+	rpt_vars[n].p.rptinactmacro = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg, this, "nounkeyct");
 	rpt_vars[n].p.nounkeyct = ast_true(val);
 	val = (char *) ast_variable_retrieve(cfg, this, "holdofftelem");
@@ -6608,9 +6696,9 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	else rpt_vars[n].p.litztime = DEFAULT_LITZ_TIME;
 	val = (char *) ast_variable_retrieve(cfg,this,"litzchar");
 	if (!val) val = DEFAULT_LITZ_CHAR;
-	rpt_vars[n].p.litzchar = val;
+	rpt_vars[n].p.litzchar = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"litzcmd");
-	rpt_vars[n].p.litzcmd = val;
+	rpt_vars[n].p.litzcmd = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"itxctcss");
 	if (val) rpt_vars[n].p.itxctcss = ast_true(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"gpsfeet");
@@ -6625,16 +6713,16 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	if (val) rpt_vars[n].p.dtmfkey = ast_true(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"dtmfkeys");
 	if (!val) val = DTMFKEYS;
-	rpt_vars[n].p.dtmfkeys = val;
+	rpt_vars[n].p.dtmfkeys = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"outstreamcmd");
-	rpt_vars[n].p.outstreamcmd = val;
+	rpt_vars[n].p.outstreamcmd = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"eloutbound");
-	rpt_vars[n].p.eloutbound = val;
+	rpt_vars[n].p.eloutbound = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"events");
 	if (!val) val = "events";
-	rpt_vars[n].p.events = val;
+	rpt_vars[n].p.events = ast_strdup(val);
 	val = (char *) ast_variable_retrieve(cfg,this,"timezone");
-	rpt_vars[n].p.timezone = val;
+	rpt_vars[n].p.timezone = ast_strdup(val);
 
 //#ifdef	__RPT_NOTCH
 	if(rpt_globals.notchfilter)
@@ -6736,15 +6824,15 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	else rpt_vars[n].p.sleeptime = SLEEPTIME;
 	/* retrieve the stanza name for the control states if there is one */
 	val = (char *) ast_variable_retrieve(cfg,this,"controlstates");
-	rpt_vars[n].p.csstanzaname = val;
+	rpt_vars[n].p.csstanzaname = ast_strdup(val);
 		
 	/* retrieve the stanza name for the scheduler if there is one */
 	val = (char *) ast_variable_retrieve(cfg,this,"scheduler");
-	rpt_vars[n].p.skedstanzaname = val;
+	rpt_vars[n].p.skedstanzaname = ast_strdup(val);
 
 	/* retrieve the stanza name for the txlimits */
 	val = (char *) ast_variable_retrieve(cfg,this,"txlimits");
-	rpt_vars[n].p.txlimitsstanzaname = val;
+	rpt_vars[n].p.txlimitsstanzaname = ast_strdup(val);
 
 	rpt_vars[n].p.iospeed = B9600;
 	if (!strcasecmp(rpt_vars[n].remoterig,remote_rig_ft950))
@@ -11326,6 +11414,7 @@ treataslocal:
 		imdone = 1;
 		break;
             case SAYIP_LOCAL:
+                res = telem_lookup(myrpt, mychannel, myrpt->name, "sayip");
                 if (wait_interval(myrpt, DLY_TELEM, mychannel) == -1) break;
 		if(!ast_lookup_iface((char *)rpt_globals.net_if, &ia))
 		{
@@ -23178,7 +23267,7 @@ static void cfg_globals_init(struct ast_config *cfg)
 		if(p) strncpy(rpt_globals.net_if,p,49);
 
 		p = (char *) ast_variable_retrieve(cfg,"globals","remoteip_url"); /* set global remoteip_url */
-		if(p) rpt_globals.remoteip_url = p;
+		if(p) rpt_globals.remoteip_url = ast_strdup(p);
 
 		p = (char *) ast_variable_retrieve(cfg,"globals","statpost"); /* set global statpost */
 		if(p)
@@ -23195,7 +23284,7 @@ static void cfg_globals_init(struct ast_config *cfg)
 		if(rpt_globals.statpost==2)
 		{
 			p = (char *) ast_variable_retrieve(cfg,"globals","statpost_url"); /* set global statpost_url */
-			if(p) rpt_globals.statpost_url = p;
+			if(p) rpt_globals.statpost_url = ast_strdup(p);
 				else {
 					rpt_globals.statpost=1;
 					ast_log(LOG_ERROR,"Global statpost is set to 2, global statposr_url is missing or blank.  Defaulting global statpost to 1 (AllStarLink)\n\n");
