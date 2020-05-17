@@ -315,6 +315,8 @@
 /*** MODULEINFO
 	<depend>tonezone</depend>
 	<depend>curl</depend>
+	<depend>blkid</depend>
+	<depend>ssl</depend>
 	<defaultenabled>yes</defaultenabled>
  ***/
 
@@ -608,6 +610,9 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision 200511")
 #include <limits.h>
 #include <ctype.h>
 #include <curl/curl.h>
+#include <mntent.h>
+#include <blkid/blkid.h>
+#include <openssl/sha.h>
 
 #include "asterisk/utils.h"
 #include "asterisk/lock.h"
@@ -1519,11 +1524,15 @@ struct sysinfo_pvt {
 	char vers[200];
 	char cvers[40];
 	char myip[50];
+	char sysid[66];
+	char ssysid[26];
 } __attribute__((aligned));
 
 static struct sysinfo_pvt sysinfo = { 
 	.vers = "Unknown",
-	.cvers = "Unknown"
+	.cvers = "Unknown",
+	.sysid = "00000000000000000000000000000000000000000000000000000000000000000",
+	.ssysid = "000000000000-000000000000",
 };
 
 /* Declarations for everyting else */
@@ -2033,7 +2042,7 @@ AST_THREADSTORAGE_CUSTOM(curl_instance, curl_instance_init, curl_instance_cleanu
 static int curl_internal(struct MemoryStruct *chunk, char *url, char *post)
 {
 	const char crl_agnt[] = "asterisk-libcurl-agent/1.0";
-	char curl_agent_string[50]="";
+	char curl_agent_string[150]="";
         int ret, vmajor, vminor;
         char *skzy;
         CURL **curl;
@@ -2047,10 +2056,10 @@ static int curl_internal(struct MemoryStruct *chunk, char *url, char *post)
                         return -1;
 
 		skzy = strstr(tdesc, "version");
-		sprintf(curl_agent_string, "%s (-; Linux %s)",crl_agnt,sysinfo.cvers); 
+		sprintf(curl_agent_string, "%s (-; Linux %s)(ID:%s)",crl_agnt,sysinfo.cvers,sysinfo.ssysid); 
                 if(skzy) 
                 	if(sscanf(skzy, "version %d.%d", &vmajor, &vminor) == 2) 
-				sprintf(curl_agent_string, "%s (app_rpt v%d.%d; Linux %s)",crl_agnt,vmajor,vminor,sysinfo.cvers);
+				sprintf(curl_agent_string, "%s (app_rpt v%d.%d; Linux %s)(ID:%s)",crl_agnt,vmajor,vminor,sysinfo.cvers,sysinfo.ssysid);
 
 		curl_easy_setopt(*curl, CURLOPT_NOSIGNAL, 1);
 
@@ -5835,6 +5844,7 @@ time_t	now;
 unsigned int seq;
 struct MemoryStruct chunk = { NULL, 0 };
 
+
 	switch(rpt_globals.statpost) {
 		case 0:  // Globally we are disabled, how about on a per node basis?
 			switch(myrpt->p.statpost_override) {
@@ -5858,6 +5868,7 @@ struct MemoryStruct chunk = { NULL, 0 };
 	                                                ast_copy_string(astr,ASL_STATPOST_URL,299);
 	                                                success=1;
 							break;
+
 					}
 					break;
 				case 32: // Node's statpost_override was never set, log that to the console and don't report
@@ -5902,6 +5913,7 @@ struct MemoryStruct chunk = { NULL, 0 };
 					break;
 
 				default: // Use ASL Stats server
+					if(strtoul(myrpt->name,NULL,10) < 2000) return;
 					ast_copy_string(astr,ASL_STATPOST_URL,299);
 					success=1;
 					break;
@@ -7079,23 +7091,78 @@ static const char *public_ip( char *ip)
 
 static void get_sys_info (void)
 {
+
+	int i = 0;
+	char tmp1[200];
+	char tmp2[200];
+	char buf[65]="";
+	const char *devname = NULL, *uuid = NULL;
+	unsigned char hash[SHA256_DIGEST_LENGTH];	
+	SHA256_CTX sha256;
+
+	struct mntent *e;	
+	blkid_probe mp;
 	FILE *fp;
-	char tmp[200];
-	char myip[50]="";
+
 	fp = fopen("/proc/version", "r");
-	if(!fp) return;
-	if((!fgets(tmp,sizeof(tmp)-1, fp)))
-	{
+	if(fp) {
+		if((fgets(tmp1,sizeof(tmp1)-1, fp))) {
+			strncpy(sysinfo.vers,tmp1,sizeof(sysinfo.vers)-1);
+			if(sscanf(tmp1,"Linux version %s", sysinfo.cvers) !=1)
+				strcpy(sysinfo.cvers,"Unknown");
+		} 
 		fclose(fp);
-		return;
+	} else {
+		strcpy(sysinfo.vers, "Unknown");
+		strcpy(sysinfo.cvers, "Unknown");
 	}
-	strncpy(sysinfo.vers,tmp,sizeof(sysinfo.vers)-1);
-	if(sscanf(tmp,"Linux version %s", sysinfo.cvers) !=1)
-	{
-		strcpy(sysinfo.cvers,"Unknown");
+
+	public_ip(buf);
+	strncpy(sysinfo.myip,buf,20);
+
+	fp = fopen("/etc/machine-id", "r");
+	if(fp) {
+		if((!fgets(tmp1,sizeof(tmp1)-1, fp))) {
+			strcpy(tmp1,"---------------------------------");
+		}
+		fclose(fp);
+	} else {
+		 strcpy(tmp1,"---------------------------------");
 	}
-	public_ip(myip);
-	strncpy(sysinfo.myip,myip,20);
+
+	FILE *fstab = setmntent("/etc/mtab", "r");
+	
+	while ((e = getmntent(fstab))) {
+		if(strcmp("/", e->mnt_dir) == 0) {
+			devname = e->mnt_fsname;
+			break;
+		}
+	}	
+	endmntent(fstab);
+
+	mp = blkid_new_probe_from_filename(devname);
+	if(mp) {
+		blkid_do_probe(mp);
+		blkid_probe_lookup_value(mp, "UUID", &uuid, NULL);
+	} else {
+		uuid = ast_strdup("00000000-0000-0000-0000-000000000000");
+	}
+
+	strcpy(tmp2,eatwhite(tmp1));
+	strcpy(tmp1,eatwhite(ast_strdup(uuid)));
+
+	SHA256_Init(&sha256);	
+	SHA256_Update(&sha256, tmp2, strlen(tmp1));
+	SHA256_Final(hash, &sha256);
+
+	for(i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+		sprintf(buf+(i*2), "%02x", hash[i]);		
+	}
+
+	buf[64] = 0;
+	strncpy(sysinfo.sysid, buf, 65);
+	sprintf(sysinfo.ssysid, "%.12s-%s", buf, &(buf[52]));
+	blkid_free_probe(mp);
 	return;
 }
 
@@ -7255,6 +7322,8 @@ static void rpt_show_globals(int fd, int i)
 				    "   Statpost        :  %d\n"
 				    "   Statpost URL    :  %s\n"
 				    "   Remote IP URL   :  %s\n"
+				    "\n"
+				    "   System ID       :  %s\n"
 				    "   ----------------------------\n\n\n",
 				    rpt_globals.conslock,
 				    MAX_STAT_LINKS,
@@ -7274,7 +7343,8 @@ static void rpt_show_globals(int fd, int i)
 				    DTMF_TIMEOUT,
 				    rpt_globals.statpost,
 				    rpt_globals.statpost_url,
-			            rpt_globals.remoteip_url
+			            rpt_globals.remoteip_url,
+				    sysinfo.ssysid
 				    );
 			break;
 		case 1:
@@ -7513,6 +7583,18 @@ static int rpt_do_globals(int fd, int argc, char *argv[])
 			i = 1;
 		rpt_globals.statpost=i;
 		ast_log(LOG_NOTICE, "Global statpost: %d\n", rpt_globals.statpost);
+		switch (i) {
+			case 1:
+				ast_log(LOG_NOTICE,"Using ASL statpost URL: %s\n", ASL_STATPOST_URL);
+				break;
+			case 2:
+				ast_log(LOG_NOTICE,"Using custom statpost URL: %s\n", rpt_globals.statpost_url);
+				break;
+			default:
+				rpt_globals.statpost=0;
+				ast_log(LOG_NOTICE,"Statpost disabled\n");
+				break;
+		}
 		return RESULT_SUCCESS;
 	}
 
@@ -11398,7 +11480,9 @@ treataslocal:
 	    case REMIP_LOCAL:
                 if (wait_interval(myrpt, DLY_TELEM, mychannel) == -1) break;
 		res = telem_lookup(myrpt, mychannel, myrpt->name, "remip");
-		if(strlen(sysinfo.myip)>0) {
+	        public_ip(myip);
+        	strncpy(sysinfo.myip,myip,20);
+		if(strlen(myip)>0) {
 	        	ast_log(LOG_NOTICE, "[*] Public IP address is %s\n\n", sysinfo.myip);
 			saynode(myrpt,mychannel,myrpt->name);
 			sayfile(mychannel, "system");
@@ -23287,6 +23371,7 @@ static void cfg_globals_init(struct ast_config *cfg)
 			if(p) rpt_globals.statpost_url = ast_strdup(p);
 				else {
 					rpt_globals.statpost=1;
+					strcpy(rpt_globals.statpost_url,ASL_STATPOST_URL);
 					ast_log(LOG_ERROR,"Global statpost is set to 2, global statposr_url is missing or blank.  Defaulting global statpost to 1 (AllStarLink)\n\n");
 				}
 		}
@@ -23437,6 +23522,8 @@ struct sched_param      rptmaster_sched;
 
 	ast_verbose("\n>>>---> Initializing %s\n\n", tdesc);
 
+	get_sys_info();
+
 	/*
  	* If there are daq devices present, open and initialize them
  	*/
@@ -23447,7 +23534,6 @@ struct sched_param      rptmaster_sched;
 	 */
         cfg_globals_init(cfg);
 
-	get_sys_info();
 
 	while((this = ast_category_browse(cfg,this)) != NULL)
 	{
