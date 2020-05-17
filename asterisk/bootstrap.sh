@@ -9,32 +9,27 @@ check_for_app() {
 	fi
 }
 
-# On FreeBSD, multiple autoconf/automake versions have different names.
-# On linux, envitonment variables tell which one to use.
+# OpenBSD: pkg_add autoconf%2.63 automake%1.9 metaauto
+test -n "$AUTOCONF_VERSION" || export AUTOCONF_VERSION=2.63
+test -n "$AUTOMAKE_VERSION" || export AUTOMAKE_VERSION=1.9
 
-uname -s | grep -q FreeBSD
-if [ $? = 0 ] ; then	# FreeBSD case
-	MY_AC_VER=259
-	MY_AM_VER=19
-else	# linux case
-	MY_AC_VER=
-	MY_AM_VER=
-	AUTOCONF_VERSION=2.60
-	AUTOMAKE_VERSION=1.9
-	export AUTOCONF_VERSION
-	export AUTOMAKE_VERSION
-fi
+check_for_app autoconf
+check_for_app autoheader
+check_for_app automake
+check_for_app aclocal
 
-check_for_app autoconf${MY_AC_VER}
-check_for_app autoheader${MY_AC_VER}
-check_for_app automake${MY_AM_VER}
-check_for_app aclocal${MY_AM_VER}
+gen_configure() {
+	echo "Generating the configure script for $1 ..."
+	shift
 
-echo "Generating the configure script ..."
+	aclocal -I "$@"
+	autoconf
+	autoheader
+	automake --add-missing --copy 2>/dev/null
+}
 
-aclocal${MY_AM_VER} 2>/dev/null
-autoconf${MY_AC_VER}
-autoheader${MY_AC_VER}
-automake${MY_AM_VER} --add-missing --copy 2>/dev/null
+gen_configure "Asterisk" autoconf `find third-party -path '*/*/*' -prune -o -type d -print | xargs -I {} echo -I {}`
+cd menuselect
+gen_configure "menuselect" ../autoconf
 
 exit 0
