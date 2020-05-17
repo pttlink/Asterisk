@@ -11480,6 +11480,7 @@ treataslocal:
 	    case REMIP_LOCAL:
                 if (wait_interval(myrpt, DLY_TELEM, mychannel) == -1) break;
 		res = telem_lookup(myrpt, mychannel, myrpt->name, "remip");
+	        public_ip(myip);
         	strncpy(sysinfo.myip,myip,20);
 		if(strlen(myip)>0) {
 	        	ast_log(LOG_NOTICE, "[*] Public IP address is %s\n\n", sysinfo.myip);
