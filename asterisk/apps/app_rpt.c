@@ -2113,6 +2113,7 @@ static int rpt_do_showvars(int fd, int argc, char *argv[]);
 static int rpt_do_page(int fd, int argc, char *argv[]);
 static int rpt_do_globals(int fd, int argc, char *argv[]);
 static int rpt_do_utils(int fd, int argc, char *argv[]);
+static int rpt_do_lookup(int fd, int argc, char *argv[]);
 
 static char debug_usage[] =
 "Usage: rpt debug level {0-7}\n"
@@ -2209,6 +2210,9 @@ static char utils_usage[] =
 "						 <nodes> = 0 to turn off local announcement and display on-screen only\n"
 "\n";
 
+static char lookup_usage[] = 
+"Usage rpt lookup <nodename>\n"
+"      Look up nodes on the allstar network\n";
 
 #ifndef	NEW_ASTERISK
 
@@ -2308,6 +2312,10 @@ static struct ast_cli_entry cli_rpt[] = {
         { { "rpt", "utils", "pubip", NULL }, 
 	rpt_do_utils,"Utility functions in app_rpt", 
 	utils_usage, NULL, NULL},
+
+	{ { "rpt", "lookup", NULL },
+	rpt_do_lookup,"Look up allstar nodes".
+	lookup_usage, NULL, NULL},
 
 
 };
@@ -8726,6 +8734,21 @@ static int rpt_do_showvars(int fd, int argc, char *argv[])
 	return(0);
 }
 
+static int rpt_do_lookup(int fd, int argc, char *argv[])
+{
+	struct rpt *myrpt;
+	char tmp[300]="";
+	int i;
+	if (argc != 3) return RESULT_SHOWUSAGE;
+	for( i=0; i<nrpts; i++){
+		myrpt = &rpt_vars[i];
+		node_lookup(myrpt,argv[2],tmp,sizeof(tmp) - 1,1);
+		if(strlen(tmp))
+			ast_cli(fd, "Node: %s\t Data: %s\n", myrpt->name, tmp);
+	}
+	return RESULT_SUCCESS;
+}
+
 static int play_tone_pair(struct ast_channel *chan, int f1, int f2, int duration, int amplitude)
 {
 	int res;
@@ -9006,6 +9029,20 @@ static char *handle_cli_showvars(struct ast_cli_entry *e,
 	return res2cli(rpt_do_showvars(a->fd,a->argc,a->argv));
 }
 
+static char *handle_cli_lookup(struct ast_cli_entry *e,
+	int cmd, struct ast_cli_args *a)
+{
+	switch (cmd) {
+	case CLI_INIT:
+		e->command = "rpt lookup";
+		e->usage = rpt_usage;
+		return NULL;
+	case CLI_GENERATE:
+		return NULL;
+	}
+	return res2cli(rpt_do_lookup(a->fd, a->argc, a->argv));
+}
+
 static char *handle_cli_localplay(struct ast_cli_entry *e,
 	int cmd, struct ast_cli_args *a)
 {
@@ -9083,7 +9120,8 @@ static struct ast_cli_entry rpt_cli[] = {
 	AST_CLI_DEFINE(handle_cli_sendtext,"Send a Text message to a specified nodes"),
 	AST_CLI_DEFINE(handle_cli_page,"Send a page to a user on a node"),
 	AST_CLI_DEFINE(handle_cli_globals,"Display rpt globally configured options"),
-	AST_CLI_DEFINE(handle_cli_utils,"Execute utility function")
+	AST_CLI_DEFINE(handle_cli_utils,"Execute utility function"),
+	AST_CLI_DEFINE(handle_cli_lookup,"Lookup Allstar nodes")
 };
 
 #endif
