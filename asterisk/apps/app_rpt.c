@@ -25772,7 +25772,7 @@ static int rpt_exec(struct ast_channel *chan, void *data)
 			int j,k;
 			char string[100];
 
-			if ((sscanf(myrpt->p.ldisc[i],"GPIO%d=%d",&j,&k) == 2)||(scanf(myrpt->p.ldisc[i],"GPIO%d:%d",&j,&k) == 2))
+			if ((sscanf(myrpt->p.ldisc[i],"GPIO%d=%d",&j,&k) == 2)||(sscanf(myrpt->p.ldisc[i],"GPIO%d:%d",&j,&k) == 2))
 			{
 				sprintf(string,"GPIO %d %d",j,k);
 				ast_sendtext(myrpt->rxchannel,string);
