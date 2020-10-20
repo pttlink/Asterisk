@@ -2314,7 +2314,7 @@ static struct ast_cli_entry cli_rpt[] = {
 	utils_usage, NULL, NULL},
 
 	{ { "rpt", "lookup", NULL },
-	rpt_do_lookup,"Look up allstar nodes".
+	rpt_do_lookup,"Look up allstar nodes",
 	lookup_usage, NULL, NULL},
 
 
