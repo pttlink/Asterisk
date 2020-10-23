@@ -9151,7 +9151,7 @@ inline static int morse_cat(char *str, int freq, int duration)
 
 //## Convert string into morse code
 
-static int send_morse(struct ast_channel *chan, char *string, int speed, int freq, int amplitude)
+static int send_morse(struct ast_channel *chan, char *string, int speed, int farn, int freq, int amplitude)
 {
 
 static struct morse_bits mbits[] = {
@@ -9243,7 +9243,7 @@ static struct morse_bits mbits[] = {
 	
 	dashtime = 3 * dottime;
 	intralettertime = dottime;
-	interlettertime = dottime * 4 ;
+	interlettertime = dottime * farn ;
 	interwordtime = dottime * 7;
 	
 	for(;(*string) && (!res); string++){
@@ -9473,6 +9473,7 @@ static int telem_any(struct rpt *myrpt,struct ast_channel *chan, char *entry)
 	char c;
 	
 	int morsespeed;
+	int morsefarnsworth;
 	int morsefreq;
 	int morseampl;
 	int morseidfreq;
@@ -9481,7 +9482,8 @@ static int telem_any(struct rpt *myrpt,struct ast_channel *chan, char *entry)
 	res = 0;
 	
 	morsespeed = retrieve_astcfgint(myrpt, myrpt->p.morse, "speed", 5, 20, 20);
-       	morsefreq = retrieve_astcfgint(myrpt, myrpt->p.morse, "frequency", 300, 3000, 800);
+       	morsefarnsworth = retrieve_astcfgint(myrpt, myrpt->p.morse, "farnsworth", 3, 10, 3 ); /* Select spacing between morse letters - 3 min, 10 max */
+	morsefreq = retrieve_astcfgint(myrpt, myrpt->p.morse, "frequency", 300, 3000, 800);
        	morseampl = retrieve_astcfgint(myrpt, myrpt->p.morse, "amplitude", 200, 8192, 4096);
 	morseidampl = retrieve_astcfgint(myrpt, myrpt->p.morse, "idamplitude", 200, 8192, 2048);
 	morseidfreq = retrieve_astcfgint(myrpt, myrpt->p.morse, "idfrequency", 300, 3000, 330);	
@@ -9495,11 +9497,11 @@ static int telem_any(struct rpt *myrpt,struct ast_channel *chan, char *entry)
 	
 		switch(c){
 			case 'I': /* Morse ID */
-				res = send_morse(chan, entry + 2, morsespeed, morseidfreq, morseidampl);
+				res = send_morse(chan, entry + 2, morsespeed, morsefarnsworth, morseidfreq, morseidampl);
 				break;
 			
 			case 'M': /* Morse Message */
-				res = send_morse(chan, entry + 2, morsespeed, morsefreq, morseampl);
+				res = send_morse(chan, entry + 2, morsespeed, morsefarnsworth, morsefreq, morseampl);
 				break;
 			
 			case 'T': /* Tone sequence */
