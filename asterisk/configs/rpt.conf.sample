@@ -523,6 +523,12 @@ frequency = 800				; Morse Telemetry Frequency
 amplitude = 4096			; Morse Telemetry Amplitude
 idfrequency = 1065			; Morse ID Frequency	
 idamplitude = 1024			; Morse ID Amplitude
+farnsworth = 3			; Adjust morse code letter spacing
+			; Values are from 3 to 10
+			; 3 = the least amount of space between letters,
+			; and 10 = the most.
+			; For more information about Farnsworth Timing, visit:
+			; http://www.justlearnmorsecode.com/farnsworth.html
 
 ;
 ; This section allows wait times for telemetry events to be adjusted
