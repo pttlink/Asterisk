@@ -6,6 +6,20 @@ This is the Asterisk source package for AllStarLink and the files to build the A
 
 ---------------------------------------------------------------------------------------------------------------------------------
 
+#### Submitting Issues/Bug Reporting:
+
+All Issues/Bug Reports *MUST* utilize the the [ISSUE TEMPLATE](https://github.com/AllStarLink/Asterisk/blob/develop/.github/ISSUE_TEMPLATE/bug_report.md) for submission.  Issues/bugs submitted without using this template will be closed/rejected.  Do not utilize for submitting issues that are Feature Requests. *(Effective 11/29/2020)*
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+#### Submitting Changes/Pull Requests:
+
+All Changes/Pull Requests *MUST* utilize the [PULL REQUEST](https://github.com/AllStarLink/Asterisk/blob/develop/.github/PULL_REQUEST_TEMPLATE/PULL_REQUEST_TEMPLATE.md) template.   Changes/Pull Requests submitted without using this template will be rejected/closed.  *(Effective 11/29/2020)*
+
+Additionally, all Changes/Pull Requests *MUST* be submitted against the ***develop*** branch.  Requests submitted against the ***master*** branch will be closed/rejected.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
 Updates: 
 Refer to the CHANGELOG.md for all changes in this release.
 
