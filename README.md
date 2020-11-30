@@ -18,6 +18,15 @@ All Changes/Pull Requests *MUST* utilize the [PULL REQUEST](https://github.com/A
 
 Additionally, all Changes/Pull Requests *MUST* be submitted against the ***develop*** branch.  Requests submitted against the ***master*** branch will be closed/rejected.
 
+All Changes/Pull Requets *must* include:
+
+* Developer's Certificate of Origin (--signoff or -s) (https://probot.github.io/apps/dco/)
+* Be digitally signed by the submitter with a verified GPG key (-S)  (https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/signing-commits)
+
+Commits that don't include these two items won't pass the status checks. 
+
+Any commit that fails the status checks will be rejected until it passes all status checks.
+
 ---------------------------------------------------------------------------------------------------------------------------------
 
 Updates: 
