@@ -8,7 +8,7 @@
     <a href="https://wiki.allstarlink.org"><img src="https://img.shields.io/badge/Docs-wiki-brightgreen.svg?style=for-the-badge"></a>
     <a href="https://github.com/AllStarLink/Asterisk/issues"><img src="https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=for-the-badge"></a>
     <a href="https://github.com/AllStarLink/Asterisk/issues"><img src="https://img.shields.io/github/issues-closed/AllStarLink/Asterisk.svg?style=for-the-badge"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/issues"><img src="https://img.shields.io/github/issues-pr-closed/AllStarLink/Asterisk.svg?style=for-the-badge"></a>
+    <a href="https://github.com/AllStarLink/Asterisk/pulls"><img src="https://img.shields.io/github/issues-pr-closed/AllStarLink/Asterisk.svg?style=for-the-badge"></a>
 </p>
 <p align="center">
     <a href="https://github.com/AllStarLink/Asterisk/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-GPL-blue.svg?style=for-the-badge"></a>
