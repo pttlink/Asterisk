@@ -3,7 +3,7 @@
 #  Created by Marshall Dias
 #  Modified by Doug, WA3DSP 8/18/2015
 #
-# using ULAW format
+# release date 20190311
 #
 # Script to write Calls to /var/lib/asterisk/sounds/rpt/nodenames
 # which will then be used in place of node numbers. This script
@@ -25,7 +25,7 @@
 # your system. For the BBB and RPi2 it will generally be /var/log/asterisk
 
 #SRCDIR=/var/log/asterisk
-SRCDIR=/var/www/html/allmon
+SRCDIR=/var/www/html/allmon2
 
 # Set the destination directory.
 # Use a tmp directory for testing
@@ -170,4 +170,5 @@ else
   make_call
   write_call
 fi
+
 

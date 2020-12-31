@@ -1,16 +1,23 @@
-#!/usr/bin/env bash
+#!/bin/bash
+##!/usr/bin/env bash
 set -o errexit
 
 # N4IRS 07/26/2017
-# mod4whip N8THN 2018
-#release date 20180323-1
+# mod4whip and SSL N8THN 2019
+# revision 20190827-1
 #################################################
 #                                               #
 #                                               #
 #                                               #
 #################################################
 
-SAVESITE=http://backup.allstarlink.org
+SAVESITE=https://backup-tpa.allstarlink.org
+#SAVESITE=https://backup.allstarlink.org
+
+sys_checks() {
+if [ -f /tmp/astsave.tgz ] ; then
+    rm /tmp/astsave.tgz
+fi
 
 if [ -r /etc/asterisk/savenode.conf ]
 then
@@ -29,13 +36,15 @@ if [ $ENABLE -eq 0 ]
 then
         exit 0
 fi
+}
 
+save_config() {
 whiptail --msgbox "Saving Asterisk node configuration to $SAVESITE" 20 60 2
+cd / && tar czf /tmp/astsave.tgz  etc/asterisk/*.conf > /dev/null
 
-cd / && tar czf /tmp/astsave.tgz  etc/asterisk > /dev/null
 if [ $? -eq 0 ]
 then
-        wget -q --timeout=60 --tries=1 --post-file=/tmp/astsave.tgz  \
+        wget --secure-protocol=auto --timeout=60 --tries=1 --post-file=/tmp/astsave.tgz  \
             --http-user=$NODE --http-password=$PASSWORD -O- \
             $SAVESITE/savenode.cgi
         if [ $? -ne 0 ]
@@ -45,6 +54,19 @@ then
                 whiptail --msgbox "File transfer successful." 20 60 2
         fi
 fi
-#rm -r /tmp/astsave.tgz > /dev/null
-exit 0
+}
 
+
+
+finish() {
+whiptail --msgbox "Now I hope they keep the power on at the datacenter." 20 60 2
+if [ -f /tmp/astsave.tgz ] ; then
+    rm /tmp/astsave.tgz
+fi
+exit 0
+}
+
+
+sys_checks
+save_config
+finish
