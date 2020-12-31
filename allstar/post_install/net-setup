@@ -1,9 +1,9 @@
 #!/bin/bash
 # Origianl by N4IRS
 # mod4whip N8THN
-# V2.1 May 2018
+# V2.2 Dec 2020
 
-# release date 20180503
+# release date 20201223
 
 # Network interface setup script
 #
@@ -12,24 +12,34 @@ DHCPCDPATH=/etc/dhcpcd.conf
 INTPATH=/etc/network/interfaces
 IFUPDPATH=/etc/network/if-up.d/touchfile
 RESOLVPATH=/etc/resolv.conf
-
-#HOSTN=$(cat /etc/hostname)
-#FQDN=$(hostname -f)
-#DOMN=$(hostname -d)
-#HOSTNAME=`echo $FQDN |awk -F. '{ print $1 }'`
 DPKG_QUERY=$(which dpkg-query)
-
 ETHS=$(ip -o link show | awk -F': ' '{print $2}' | grep ^en)
 MULTI=$(ip -o link show | awk -F': ' '{print $2}' | grep -c ^en)
+logfile=/tmp/net-setup.log
+
 if [ $MULTI -gt 1 ]; then
-MULTIETH="YES"
+	MULTIETH="YES"
 else
-MULTIETH="NO"
+	MULTIETH="NO"
 fi
 
 ETH=$(ip -o link show | awk -F': ' '{print $2}' | grep ^en)
 if [ $? = "1" ]; then
-        ETH=eth0
+        ETH=$(ip -o link show | awk -F': ' '{print $2}' |grep ^eth)
+fi
+
+HASNETIF=$(grep -c 'net_if=' /etc/asterisk/rpt.conf)
+if [ $HASNETIF = "0" ]; then
+	echo "does not have net_if in config" >> $logfile
+else
+	CURRENT_NET_IF=$(grep '^net_if' /etc/asterisk/rpt.conf |awk -F '=' '{print $2}' |awk -F ';' '{print $1}'|xargs)
+	if [ "$CURRENT_NET_IF" = "$ETH" ]; then
+		#already set correctly
+		echo "net_if variable already set correctly" >> $logfile
+	else
+		echo "setting net_if variable to $ETH in rpt.conf" >> $logfile
+		sed -i "/^net_if=/s/.*/net_if=$ETH		;set to custom statpost_url if statpost=2 (above)/" /etc/asterisk/rpt.conf
+	fi
 fi
 
 
@@ -56,9 +66,9 @@ mask2cidr() {
 do_dhcpcd_yn() {
 systemctl status dhcpcd 2> /dev/null 1> /dev/null
 if [ $? = 0 ]; then
-DHCPCD_YN=YES
+	DHCPCD_YN=YES
 else
-DHCPCD_YN=NO
+	DHCPCD_YN=NO
 fi
 }
 
@@ -86,8 +96,8 @@ do_static_dhcp_menu() {
 
 do_set_static() {
 if [ $MULTIETH = "YES" ]; then
-ETH_IFACE=$(whiptail --inputbox "Enter Ethernet interface to use:\n$ETHS \n" 20 78 3>&1 1>&2 2>&3)
-ETH=$ETH_IFACE
+	ETH_IFACE=$(whiptail --inputbox "Enter Ethernet interface to use:\n$ETHS \n" 20 78 3>&1 1>&2 2>&3)
+	ETH=$ETH_IFACE
 fi
 IPADDR=$(whiptail --inputbox "Enter the IP address for interface $ETH \nin the form XXX.XXX.XXX.XXX: " 8 78 3>&1 1>&2 2>&3)
 NETMASK=$(whiptail --inputbox "Enter the netmask in the form XXX.XXX.XXX.XXX: " 8 78 3>&1 1>&2 2>&3)
@@ -97,11 +107,11 @@ DGW=$(whiptail --inputbox "Enter the default gateway in the form XXX.XXX.XXX.XXX
 PDNS=$(whiptail --inputbox "Enter the address of the primary nameserver in the form XXX.XXX.XXX.XXX: " 8 78 3>&1 1>&2 2>&3)
 SDNS=$(whiptail --inputbox "Enter the address of the secondary nameserver in the form XXX.XXX.XXX.XXX: " 8 78 3>&1 1>&2 2>&3)
 if (whiptail --yesno "So we have: \n\nIP Address/CIDR  : $IPADDR/$numbits\nNetmask          : $NETMASK\nDefault Gateway  : $DGW\nPrimary DNS      : $PDNS\nSecondary DNS    : $SDNS\n\nSelect yes to continue or no to start over." 30 80); then
-# yes, write it
-do_static_write
+	# yes, write it
+	do_static_write
 else
-# no, re-enter
-do_set_static
+	# no, re-enter
+	do_set_static
 fi
 }
 
@@ -122,13 +132,13 @@ if [ "$DHCPCD_YN" = "YES" ]; then
         echo "static domain_name_servers=$PDNS, $SDNS" >> /etc/dhcpcd.conf
         ip link show | grep wlan > /dev/null
         if [ $? = 0 ]; then
-        whiptail --msgbox "Wireless interface found  Writing settings for wlan0 also" 20 60 1
-        echo "# define static profile for wlan " >> /etc/dhcpcd.conf
-        echo "profile static_wlan0" >> /etc/dhcpcd.conf
-        echo "interface wlan0" >> /etc/dhcpcd.conf
-        echo "static ip_address=$IPADDR/$numbits" >> /etc/dhcpcd.conf
-        echo "static routers=$DGW" >> /etc/dhcpcd.conf
-        echo "static domain_name_servers=$PDNS, $SDNS" >> /etc/dhcpcd.conf
+	        whiptail --msgbox "Wireless interface found  Writing settings for wlan0 also" 20 60 1
+	        echo "# define static profile for wlan " >> /etc/dhcpcd.conf
+	        echo "profile static_wlan0" >> /etc/dhcpcd.conf
+	        echo "interface wlan0" >> /etc/dhcpcd.conf
+	        echo "static ip_address=$IPADDR/$numbits" >> /etc/dhcpcd.conf
+	        echo "static routers=$DGW" >> /etc/dhcpcd.conf
+	        echo "static domain_name_servers=$PDNS, $SDNS" >> /etc/dhcpcd.conf
         fi
         whiptail --msgbox "Finished writing DHCPCD settings for static IP addressing\nChanges will take effect after reboot" 10 78
 else
@@ -141,8 +151,8 @@ else
         sed -i "/iface $ETH inet static/a address $IPADDR \nnetmask $NETMASK \ngateway $DGW \ndns-nameservers $PDNS $SDNS" /etc/network/interfaces
         ip link show | grep wlan > /dev/null
         if [ $? = 0 ] ;then
-        sed -i "/iface wlan0 inet/c\iface $ETH inet static" /etc/network/interfaces
-        sed -i "/iface wlan0 inet static/a address $IPADDR \nnetmask $NETMASK \ngateway $DGW \ndns-nameservers $PDNS $SDNS" /etc/network/interfaces
+	        sed -i "/iface wlan0 inet/c\iface $ETH inet static" /etc/network/interfaces
+	        sed -i "/iface wlan0 inet static/a address $IPADDR \nnetmask $NETMASK \ngateway $DGW \ndns-nameservers $PDNS $SDNS" /etc/network/interfaces
         fi
         whiptail --msgbox "Finished writing settings in interfaces file for static IP addressing\nChanges will take effect after reboot" 10 78
 fi
@@ -169,7 +179,7 @@ else
         sed -i "/iface $ETH inet/c\iface $ETH inet dhcp" /etc/network/interfaces
         ip link show | grep wlan > /dev/null
         if [ $? =0 }; then
-        sed -i "/iface wlan0 inet/c\iface wlan0 inet dhcp" /etc/network/interfaces
+	        sed -i "/iface wlan0 inet/c\iface wlan0 inet dhcp" /etc/network/interfaces
         fi
         sed -i '/address/d' /etc/network/interfaces
         sed -i '/netmask/d' /etc/network/interfaces
@@ -182,16 +192,15 @@ fi
 
 ########  Main body here
 if (whiptail --title "Network setup" --yesno "Network DHCP or Static setup.\n\nDo you want to do this now?" 15 78) then
- ANSWER=$?
+	ANSWER=$?
 else
- ANSWER=$?
+	ANSWER=$?
 fi
 
-if [ $ANSWER = 1 ]
-then
+if [ $ANSWER = 1 ]; then
         whiptail --msgbox "You may set up your IP address settings later" 8 78
         exit 0
 else
-do_dhcpcd_yn
-do_static_dhcp_menu
+	do_dhcpcd_yn
+	do_static_dhcp_menu
 fi
