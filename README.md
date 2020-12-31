@@ -1,18 +1,18 @@
 <p align="right">
-    <a href="https://github.com/AllStarLink/Asterisk/stargazers"><img src="https://img.shields.io/github/stars/AllStarLink/Asterisk.svg?style=social&label=Star" style="margin-left:5em"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/network/members"><img src="https://img.shields.io/github/forks/AllStarLink/Asterisk.svg?style=social&label=Fork"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/watcherss"><img alt="GitHub watchers" src="https://img.shields.io/github/watchers/AllStarLink/Asterisk?style=social"></a>
+    <a href="https://github.com/pttlink/Asterisk/stargazers"><img src="https://img.shields.io/github/stars/pttlink/Asterisk.svg?style=social&label=Star" style="margin-left:5em"></a>
+    <a href="https://github.com/pttlink/Asterisk/network/members"><img src="https://img.shields.io/github/forks/pttlink/Asterisk.svg?style=social&label=Fork"></a>
+    <a href="https://github.com/pttlink/Asterisk/watchers"><img alt="GitHub watchers" src="https://img.shields.io/github/watchers/pttlink/Asterisk?style=social"></a>
 </p>
 
 <p align="center">
-    <a href="https://wiki.allstarlink.org"><img src="https://img.shields.io/badge/Docs-wiki-brightgreen.svg?style=for-the-badge"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/issues"><img src="https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=for-the-badge"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/issues"><img src="https://img.shields.io/github/issues-closed/AllStarLink/Asterisk.svg?style=for-the-badge"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/pulls"><img src="https://img.shields.io/github/issues-pr-closed/AllStarLink/Asterisk.svg?style=for-the-badge"></a>
+    <a href="https://wiki.pttlink.org"><img src="https://img.shields.io/badge/Docs-wiki-brightgreen.svg?style=for-the-badge"></a>
+    <a href="https://github.com/pttlink/Asterisk/issues"><img src="https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=for-the-badge"></a>
+    <a href="https://github.com/pttlink/Asterisk/issues"><img src="https://img.shields.io/github/issues-closed/pttlink/Asterisk.svg?style=for-the-badge"></a>
+    <a href="https://github.com/pttlink/Asterisk/pulls"><img src="https://img.shields.io/github/issues-pr-closed/pttlink/Asterisk.svg?style=for-the-badge"></a>
 </p>
 <p align="center">
-    <a href="https://github.com/AllStarLink/Asterisk/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-GPL-blue.svg?style=for-the-badge"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/releases"><img alt="GitHub all releases" src="https://img.shields.io/github/downloads/AllStarLink/Asterisk/total?color=lightgreen&style=for-the-badge"></a>
+    <a href="https://github.com/pttlink/Asterisk/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-GPL-blue.svg?style=for-the-badge"></a>
+    <a href="https://github.com/pttlink/Asterisk/releases"><img alt="GitHub all releases" src="https://img.shields.io/github/downloads/pttlink/Asterisk/total?color=lightgreen&style=for-the-badge"></a>
 </p>
 
 # Asterisk source package for AllStarLink
