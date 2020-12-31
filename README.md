@@ -1,18 +1,18 @@
 <p align="right">
-    <a href="https://github.com/AllStarLink/Asterisk/stargazers"><img src="https://img.shields.io/github/stars/AllStarLink/Asterisk.svg?style=social&label=Star" style="margin-left:5em"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/network/members"><img src="https://img.shields.io/github/forks/AllStarLink/Asterisk.svg?style=social&label=Fork"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/watcherss"><img alt="GitHub watchers" src="https://img.shields.io/github/watchers/AllStarLink/Asterisk?style=social"></a>
+    <a href="https://github.com/pttlink/Asterisk/stargazers"><img src="https://img.shields.io/github/stars/pttlink/Asterisk.svg?style=social&label=Star" style="margin-left:5em"></a>
+    <a href="https://github.com/pttlink/Asterisk/network/members"><img src="https://img.shields.io/github/forks/pttlink/Asterisk.svg?style=social&label=Fork"></a>
+    <a href="https://github.com/pttlink/Asterisk/watchers"><img alt="GitHub watchers" src="https://img.shields.io/github/watchers/pttlink/Asterisk?style=social"></a>
 </p>
 
 <p align="center">
-    <a href="https://wiki.allstarlink.org"><img src="https://img.shields.io/badge/Docs-wiki-brightgreen.svg?style=for-the-badge"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/issues"><img src="https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=for-the-badge"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/issues"><img src="https://img.shields.io/github/issues-closed/AllStarLink/Asterisk.svg?style=for-the-badge"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/pulls"><img src="https://img.shields.io/github/issues-pr-closed/AllStarLink/Asterisk.svg?style=for-the-badge"></a>
+    <a href="https://wiki.pttlink.org"><img src="https://img.shields.io/badge/Docs-wiki-brightgreen.svg?style=for-the-badge"></a>
+    <a href="https://github.com/pttlink/Asterisk/issues"><img src="https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=for-the-badge"></a>
+    <a href="https://github.com/pttlink/Asterisk/issues"><img src="https://img.shields.io/github/issues-closed/pttlink/Asterisk.svg?style=for-the-badge"></a>
+    <a href="https://github.com/pttlink/Asterisk/pulls"><img src="https://img.shields.io/github/issues-pr-closed/pttlink/Asterisk.svg?style=for-the-badge"></a>
 </p>
 <p align="center">
-    <a href="https://github.com/AllStarLink/Asterisk/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-GPL-blue.svg?style=for-the-badge"></a>
-    <a href="https://github.com/AllStarLink/Asterisk/releases"><img alt="GitHub all releases" src="https://img.shields.io/github/downloads/AllStarLink/Asterisk/total?color=lightgreen&style=for-the-badge"></a>
+    <a href="https://github.com/pttlink/Asterisk/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-GPL-blue.svg?style=for-the-badge"></a>
+    <a href="https://github.com/pttlink/Asterisk/releases"><img alt="GitHub all releases" src="https://img.shields.io/github/downloads/pttlink/Asterisk/total?color=lightgreen&style=for-the-badge"></a>
 </p>
 
 # Asterisk source package for AllStarLink
@@ -25,13 +25,13 @@ This is the Asterisk source package for AllStarLink and the files to build the A
 
 #### Submitting Issues/Bug Reporting:
 
-All Issues/Bug Reports *MUST* utilize the the [ISSUE TEMPLATE](https://github.com/AllStarLink/Asterisk/blob/develop/.github/ISSUE_TEMPLATE/bug_report.md) for submission.  Issues/bugs submitted without using this template will be closed/rejected.  Do not utilize for submitting issues that are Feature Requests. *(Effective 11/29/2020)*
+All Issues/Bug Reports *MUST* utilize the the [ISSUE TEMPLATE](https://github.com/pttlink/Asterisk/blob/develop/.github/ISSUE_TEMPLATE/bug_report.md) for submission.  Issues/bugs submitted without using this template will be closed/rejected.  Do not utilize for submitting issues that are Feature Requests. *(Effective 11/29/2020)*
 
 ---------------------------------------------------------------------------------------------------------------------------------
 
 #### Submitting Changes/Pull Requests:
 
-All Changes/Pull Requests *MUST* utilize the [PULL REQUEST](https://github.com/AllStarLink/Asterisk/blob/develop/.github/PULL_REQUEST_TEMPLATE/PULL_REQUEST_TEMPLATE.md) template.   Changes/Pull Requests submitted without using this template will be rejected/closed.  *(Effective 11/29/2020)*
+All Changes/Pull Requests *MUST* utilize the [PULL REQUEST](https://github.com/pttlink/Asterisk/blob/develop/.github/PULL_REQUEST_TEMPLATE/PULL_REQUEST_TEMPLATE.md) template.   Changes/Pull Requests submitted without using this template will be rejected/closed.  *(Effective 11/29/2020)*
 
 Additionally, all Changes/Pull Requests *MUST* be submitted against the ***develop*** branch.  Requests submitted against the ***master*** branch will be closed/rejected.
 
@@ -51,11 +51,11 @@ Refer to the CHANGELOG.md for all changes in this release.
 
 ---------------------------------------------------------------------------------------------------------------------------------
 
-AllStarLink wiki: https://wiki.allstarlink.org
+PTTLink wiki: https://wiki.pttlink.org
 
-AllStarLink Portal:  https://www.allstarlink.org
+PTTLink Portal:  https://www.pttlink.org
 
-AllStarLink Network/System status:  https://grafana.allstarlink.org
+PTTLink Network/System status:  https://grafana.pttlink.org
 
 ---------------------------------------------------------------------------------------------------------------------------------
 
@@ -74,10 +74,10 @@ Asterisk, app_rpt and all associated code/files are licensed, released, and dist
 ---------------------------------------------------------------------------------------------------------------------------------
 
 ## Compiling
-Refer to the Compiling article on the AllStarLink Wiki at https://wiki.allstarlink.org/wiki/Compiling for information on how to build for source.
+Refer to the Compiling article on the AllStarLink Wiki at https://wiki.pttlink.org/wiki/Compiling for information on how to build for source.
 
 ---------------------------------------------------------------------------------------------------------------------------------
 
 ## Contributing
 
-Please refer to the [Contributing](https://wiki.allstarlink.org/wiki/Contributing) page on the AllStarLink Wiki.
+Please refer to the [Contributing](https://wiki.pttlink.org/wiki/Contributing) page on the AllStarLink Wiki.
