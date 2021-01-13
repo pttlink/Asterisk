@@ -416,6 +416,7 @@
 #define	NODENAMES "rpt/nodenames"
 #define	PARROTFILE "/tmp/parrot_%s_%u"
 #define	GPSFILE "/tmp/gps.dat"
+#define STATPOST_PROGRAM "/usr/bin/wget,-q,--output-document=/dev/null,--no-check-certificate"
 
 #define	GPS_VALID_SECS 60
 #define	GPS_UPDATE_SECS 30
@@ -478,7 +479,8 @@
 #define RPTTHREAD_PRI		40
 #define RPTCALLTHREAD_PRI	70
 #define RPTMASTERTHREAD_PRI	40
-#define SCHED_POLICY		SCHED_FIFO
+// SCHED_RR yields to RT time slice
+#define SCHED_POLICY		SCHED_RR
 
 
 /*
@@ -1231,6 +1233,7 @@ static struct rpt
 		char telemdefault;
 		char telemdynamic;		
 		char lnkactenable;
+		char *statpost_program;
 		char *statpost_url;
 		int statpost_override;
 		int statpost_custom;
@@ -1514,7 +1517,7 @@ static struct rpt_globals_pvt rpt_globals = {
 	.remoteip_url = REMOTEIP_URL, 			/* Service to lookup remote (public) ip */
 	.statpost_url = ASL_STATPOST_URL,		/* Default URL is for AllStarLink */
 	.statpost = 1,					/* Report stats default is AlilStarLink */
-	.net_if="ens192",				/* Default network interface to report stats 22 IP addresses on */
+	.net_if="eth0",				/* Default network interface to report stats 22 IP addresses on */
 };
 
 struct sysinfo_pvt {
@@ -5850,9 +5853,9 @@ int	i;
  */
 static void statpost(struct rpt *myrpt,char *pairs)
 {
-    char str[300],astr[300];
+    char str[300],astr[300],*bstr;
     char *astrs[100];
-    int	pid, success = 0;
+    int	n,pid,success = 0;
     time_t	now;
     unsigned int seq;
 
@@ -5975,20 +5978,23 @@ static void statpost(struct rpt *myrpt,char *pairs)
         return;
     }
 
+    bstr = ast_strdup(myrpt->p.statpost_program);
+    n = finddelim(bstr,astrs,100);
+    if (n < 1) return;
+
     ast_mutex_lock(&myrpt->statpost_lock);
     seq = ++myrpt->statpost_seqno;
     ast_mutex_unlock(&myrpt->statpost_lock);
     time(&now);
 
-    sprintf(str,"%s?node=%s&time=%u&seqno=%u",myrpt->p.statpost_url,myrpt->name,(unsigned int) now,seq);
+    sprintf(str,"%s?node=%s&time=%u&seqno=%u",astr,myrpt->name,(unsigned int) now,seq);
     if (pairs) sprintf(str + strlen(str),"&%s",pairs);
 
     if(debug >= 64)
         ast_log(LOG_NOTICE, "Performing statpost update for node %s. URL %s  Telem Data: %s\n\n", myrpt->name, astr, str);
 
-	astrs[0] = astr;
-	astrs[1] = str;
-	astrs[2] = NULL;
+    astrs[n++] = str;
+    astrs[n] = NULL;
     if (!(pid = fork()))
     {
         execv(astrs[0],astrs);
@@ -6497,7 +6503,9 @@ static char *cs_keywords[] = {"rptena","rptdis","apena","apdis","lnkena","lnkdis
 	rpt_vars[n].p.statpost_override = 32;
 	val = (char *) ast_variable_retrieve(cfg,this,"statpost_override");
 	if (val) rpt_vars[n].p.statpost_override = atoi(val);
-
+        val = (char *) ast_variable_retrieve(cfg,this,"statpost_program");
+        if (val) rpt_vars[n].p.statpost_program = val;
+                else rpt_vars[n].p.statpost_program = STATPOST_PROGRAM;
 	if(rpt_vars[n].p.statpost_custom>0) {
 		val = (char *) ast_variable_retrieve(cfg,this,"statpost_url");
 		if (val) rpt_vars[n].p.statpost_url = ast_strdup(val);
@@ -21149,8 +21157,8 @@ struct sched_param      rpt_sched;
 			myrpt->macropatch=0;
 			channel_revert(myrpt);
 		}
-		/* get rid of tail if timed out or repeater is beaconing */
-		if (!myrpt->totimer || (!myrpt->mustid && myrpt->p.beaconing)) myrpt->tailtimer = 0;
+		/* get rid of tail if timed out */
+		if (!myrpt->totimer) myrpt->tailtimer = 0;
 		/* if not timed-out, add in tail */
 		if (myrpt->totimer) totx = totx || myrpt->tailtimer;
 		/* If user or links key up or are keyed up over standard ID, switch to talkover ID, if one is defined */
