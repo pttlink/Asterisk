@@ -1493,7 +1493,7 @@ struct rpt_globals_pvt {
 	char net_if[50];	// Network interface to report in status 22 messages
 } __attribute__((aligned));
 
-#define ASL_STATPOST_URL "http://stats.allstarlink.org/uhandler.php"
+#define ASL_STATPOST_URL "http://stats.pttlink.org/uhandler.php"
 #define	REMOTEIP_URL	 "http://ifconfig.me/ip"
 
 static struct rpt_globals_pvt rpt_globals = {
@@ -5846,178 +5846,157 @@ int	i;
 }
 
 /*
- * Send node telemetry status to stats server using libcurl
+ * Send node telemetry status to stats server using wget
  */
 static void statpost(struct rpt *myrpt,char *pairs)
 {
-char str[300],astr[300],bstr[300];
-char result[20]="";
-int success = 0;
-time_t	now;
-unsigned int seq;
-struct MemoryStruct chunk = { NULL, 0 };
+    char str[300],astr[300];
+    char *astrs[100];
+    int	pid, success = 0;
+    time_t	now;
+    unsigned int seq;
 
+    switch(rpt_globals.statpost) {
+    case 0:  // Globally we are disabled, how about on a per node basis?
+        switch(myrpt->p.statpost_override) {
+        case 0: // No node reporting
+            if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
+            return;
 
-	switch(rpt_globals.statpost) {
-		case 0:  // Globally we are disabled, how about on a per node basis?
-			switch(myrpt->p.statpost_override) {
-				case 0: // No node reporting
-					if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
-					return;
+        case 1: // Let node report
+            switch (myrpt->p.statpost_custom) {
+            case 1: // Use custom stats server url for this node
+                if(strlen(myrpt->p.statpost_url)>0) {
+                    ast_copy_string(astr,myrpt->p.statpost_url,299);
+                    success=1;
+                } else {
+                    ast_log(LOG_ERROR, "No statpost for node %s:  statpost_custom is set, node statpost_url is blank!\n\n", myrpt->name);
+                    return;
+                }
+                break;
 
-				case 1: // Let node report
-					switch (myrpt->p.statpost_custom) {
-						case 1: // Use custom stats server url for this node
-							if(strlen(myrpt->p.statpost_url)>0) {
-								 ast_copy_string(astr,myrpt->p.statpost_url,299);
-								 success=1;
-							} else {
-								ast_log(LOG_ERROR, "No statpost for node %s:  statpost_custom is set, node statpost_url is blank!\n\n", myrpt->name);
-								return;
-							}
-							break;
+            default: // No custom stats server url specified for this node
+                ast_copy_string(astr,ASL_STATPOST_URL,299);
+                success=1;
+                break;
 
-						default: // No custom stats server url specified for this node
-	                                                ast_copy_string(astr,ASL_STATPOST_URL,299);
-	                                                success=1;
-							break;
+            }
+            break;
+        case 32: // Node's statpost_override was never set, log that to the console and don't report
+            ast_log(LOG_ERROR, "No statpost for node %s: statpost_override not defined in node stanza!\n\n", myrpt->name);
+            return;
 
-					}
-					break;
-				case 32: // Node's statpost_override was never set, log that to the console and don't report
-					ast_log(LOG_ERROR, "No statpost for node %s: statpost_override not defined in node stanza!\n\n", myrpt->name);
-					return;
+        case 128:  // Private node reporting
+            if(strtoul(myrpt->name,NULL,10) < 2000) {
+                if(myrpt->p.statpost_custom == 2) {
+                    if(strlen(myrpt->p.statpost_url)>0) {
+                        ast_log(LOG_NOTICE, "Statpost reporting for private node %s\n\n", myrpt->name);
+                        ast_copy_string(astr,myrpt->p.statpost_url,299);
+                        success=1;
+                    }
+                }
+            }
+            break;
 
-				case 128:  // Private node reporting
-					if(strtoul(myrpt->name,NULL,10) < 2000) {
-						if(myrpt->p.statpost_custom == 2) {
-							if(strlen(myrpt->p.statpost_url)>0) {
-								ast_log(LOG_NOTICE, "Statpost reporting for private node %s\n\n", myrpt->name);
-								ast_copy_string(astr,myrpt->p.statpost_url,299);
-								success=1;
-							}
-						}
-					}
-					break;
+        default:  // Treat all other values like 0 or not set
+            if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
+            return;
+        }
+        break;
 
-				default:  // Treat all other values like 0 or not set
-					if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
-					return; 
-			}
-			break;
+    case 1:  // Use Stats server
+        switch(myrpt->p.statpost_override) {
+        case 0: // No reporting this node
+            if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
+            return;
 
-		case 1:  // Use ASL Stats server
-			switch(myrpt->p.statpost_override) {
-				case 0: // No reporting this node
-					if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
-					return;
+        case 128: // Private node reporting
+            if(strtoul(myrpt->name,NULL,10) < 2000) {
+                if(myrpt->p.statpost_custom == 2) {
+                    if(strlen(myrpt->p.statpost_url)>0) {
+                        ast_log(LOG_NOTICE, "Statpost reporting for private node %s\n\n", myrpt->name);
+                        ast_copy_string(astr,myrpt->p.statpost_url,299);
+                        success=1;
+                    }
+                }
+            }
 
-				case 128: // Private node reporting
-					if(strtoul(myrpt->name,NULL,10) < 2000) {
-						if(myrpt->p.statpost_custom == 2) {
-							if(strlen(myrpt->p.statpost_url)>0) {
-								ast_log(LOG_NOTICE, "Statpost reporting for private node %s\n\n", myrpt->name);
-	                                                        ast_copy_string(astr,myrpt->p.statpost_url,299);
-	                                                        success=1;
-							}
-						}
-					}
+            break;
 
-					break;
+        default: // Use default Stats server
+            if(strtoul(myrpt->name,NULL,10) < 2000) return;
+            ast_copy_string(astr,ASL_STATPOST_URL,299);
+            success=1;
+            break;
+        }
+        break;
 
-				default: // Use ASL Stats server
-					if(strtoul(myrpt->name,NULL,10) < 2000) return;
-					ast_copy_string(astr,ASL_STATPOST_URL,299);
-					success=1;
-					break;
-			}
-			break;
+    case 2:  // Use custom stats server
+        switch(myrpt->p.statpost_override) {
+        case 0:  // No reporting this node
+            if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
+            return;
 
-		case 2:  // Use custom stats server
-			switch(myrpt->p.statpost_override) {
-				case 0:  // No reporting this node
-					if(debug >= 128) ast_log(LOG_WARNING,"No statpost reporting for node %s\n\n", myrpt->name);
-					return;
+        case 32: // Node's statpost_override was never set, log that to the console and don't report
+            ast_log(LOG_ERROR, "No statpost for node %s: statpost_override not defined in node stanza!\n\n", myrpt->name);
+            return;;
 
-				case 32: // Node's statpost_override was never set, log that to the console and don't report
-					ast_log(LOG_ERROR, "No statpost for node %s: statpost_override not defined in node stanza!\n\n", myrpt->name);
-					return;;
+        case 128: // Private node reporting
+            if(strtoul(myrpt->name,NULL,10) < 2000 ) {
+                if(myrpt->p.statpost_custom == 2) {
+                    if(strlen(myrpt->p.statpost_url)>0) {
+                        ast_log(LOG_NOTICE, "Statpost reporting for private node %s\n\n", myrpt->name);
+                        ast_copy_string(astr,myrpt->p.statpost_url,299);
+                        success=1;
+                    }
+                }
+            }
+            break;
 
-				case 128: // Private node reporting
-					if(strtoul(myrpt->name,NULL,10) < 2000 ) {
-						if(myrpt->p.statpost_custom == 2) {
-							if(strlen(myrpt->p.statpost_url)>0) {
-								ast_log(LOG_NOTICE, "Statpost reporting for private node %s\n\n", myrpt->name);
-                                                                ast_copy_string(astr,myrpt->p.statpost_url,299);
-                                                                success=1;
-							}
-						}
-					}
-					break;
+        default:  // Use custom stats reporting server
+            if(strlen(rpt_globals.statpost_url)>0) {
+                ast_copy_string(astr,rpt_globals.statpost_url,299);
+                success=1;
+            } else {
+                ast_log(LOG_ERROR,"No statpost for node %s: global statpost_custom is set, global statpost_url is blank!\n\n", myrpt->name);
+                return;
+            }
+            break;
+        }
+        break;
 
-				default:  // Use custom stats reporting server
-					if(strlen(rpt_globals.statpost_url)>0) {
-						ast_copy_string(astr,rpt_globals.statpost_url,299);
-						success=1;
-					} else {
-						ast_log(LOG_ERROR,"No statpost for node %s: global statpost_custom is set, global statpost_url is blank!\n\n", myrpt->name);
-						return;
-					}
-					break;
-			}			
-			break;
+    default:  // Um, something broke and we shouldn't be here
+        success=0;
+        break;
+    }
 
-		default:  // Um, something broke and we shouldn't be here
-			success=0;
-			break;
-	}
+    if(success == 0) {
+        ast_log(LOG_ERROR, "[!] Statpost update for node %s failed due to unsupported configuration!\n\n",myrpt->name);
+        return;
+    }
 
-	if(success == 0) {
-		ast_log(LOG_ERROR, "[!] Statpost update for node %s failed due to unsupported configuration!\n\n",myrpt->name);
-		return;
-	}
+    ast_mutex_lock(&myrpt->statpost_lock);
+    seq = ++myrpt->statpost_seqno;
+    ast_mutex_unlock(&myrpt->statpost_lock);
+    time(&now);
 
-	ast_mutex_lock(&myrpt->statpost_lock);
-	seq = ++myrpt->statpost_seqno;
-	ast_mutex_unlock(&myrpt->statpost_lock);
-	time(&now);
+    sprintf(str,"%s?node=%s&time=%u&seqno=%u",myrpt->p.statpost_url,myrpt->name,(unsigned int) now,seq);
+    if (pairs) sprintf(str + strlen(str),"&%s",pairs);
 
-	sprintf(str,"?node=%s&time=%u&seqno=%u",myrpt->name,(unsigned int) now,seq);
+    if(debug >= 64)
+        ast_log(LOG_NOTICE, "Performing statpost update for node %s. URL %s  Telem Data: %s\n\n", myrpt->name, astr, str);
 
-	if (pairs) sprintf(str + strlen(str),"&%s",pairs);
-
-	AST_DECLARE_APP_ARGS(args,
-		AST_APP_ARG(url);
-		AST_APP_ARG(postdata););
-
-	sprintf(bstr,"%s%s", astr, str);
-
-	AST_STANDARD_APP_ARGS(args, bstr);
-	if(debug >= 64)
-		ast_log(LOG_NOTICE, "Performing statpost update for node %s. URL %s  Telem Data: %s\n\n", myrpt->name, astr, str);
-
-	success=0;
-	if(!curl_internal(&chunk,args.url,args.postdata ))
-	{
-		if(chunk.memory)
-		{
-			success=1;
-			chunk.memory[chunk.size] = '\0';
-			if(chunk.memory[chunk.size -1] == 10)
-				chunk.memory[chunk.size -1] = '\0';
-			ast_copy_string(result,chunk.memory,sizeof(result)-1);
-			if(debug >= 128) ast_log(LOG_NOTICE, "Statpost return: %s\n\n", result);
-			ast_free(chunk.memory);
-		}
-	}
-
-	if(!success)
-	{
-		ast_log(LOG_ERROR, "[!] Statpost update failed for node %s.\n", myrpt->name);
-		ast_log(LOG_ERROR, "[!] URL: %s\n", astr);
-		ast_log(LOG_ERROR, "[!] Telem data: %s\n\n", str);
-	}
-	return;
+	astrs[0] = astr;
+	astrs[1] = str;
+	astrs[2] = NULL;
+    if (!(pid = fork()))
+    {
+        execv(astrs[0],astrs);
+        ast_log(LOG_ERROR, "exec of %s failed.\n", astr);
+        perror("asterisk");
+        exit(0);
+    }
+    return;
 }
 
 
