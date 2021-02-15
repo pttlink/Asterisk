@@ -1,0 +1,70 @@
+name: Build
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-16.04
+    timeout-minutes: 20
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Install Dependencies
+      run: |
+        sudo apt-get install -y \
+          build-essential \
+          dahdi-source \
+          dahdi-linux \
+          gcc-4.9 \
+          g++-4.9 \
+          libasound2-dev \
+          libblkid-dev \
+          libss7-dev \
+          libusb-dev
+    - name: Build DAHDI
+      run: |
+        set -x
+        git clone https://github.com/pttlink/ASL-DAHDI-PATCHED-2.11.1.git
+        cd ASL-DAHDI-PATCHED-2.11.1
+        make distclean
+        make -j$(nproc) MODULES_EXTRA="dahdi_dummy"
+        sudo make -j$(nproc) MODULES_EXTRA="dahdi_dummy" install
+    - name: Build Asterisk
+      run: |
+        set -x
+        cd asterisk
+        ./bootstrap.sh
+        make distclean
+        ./configure CXX=g++-4.9 CC=gcc-4.9 LDFLAGS="-zmuldefs -lasound" CFLAGS="-Wno-unused -Wno-all -Wno-int-conversion"
+        make menuselect.makeopts
+        # menuselect/menuselect \
+        #   --enable app_rpt \
+        #   --enable chan_beagle \
+        #   --enable chan_tlb \
+        #   --enable chan_usrp \
+        #   --enable chan_rtpdir \
+        #   --enable chan_usbradio \
+        #   --enable chan_simpleusb \
+        #   --enable chan_echolink \
+        #   --enable app_gps \
+        #   --enable chan_voter \
+        #   --enable radio-tune-menu \
+        #   --enable simpleusb-tune-menu \
+        #   menuselect.makeopts
+        make -j$(nproc)
+    - name: Print failure
+      if: ${{ failure() }}
+      run: |
+        set -x
+        gcc-4.9 --version
+        git status
+        find . -name tonezone.h
+        sudo find / -name tonezone.h
+    - name: Archive config.log
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: config.log
+        path: asterisk/config.log
+        retention-days: 5
