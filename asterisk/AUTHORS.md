@@ -107,6 +107,7 @@ between each version of app_rpt.c released.
  - Max Parke, KA1RBI - Original author (copyright)
  - Jim Dixon, WB6NIL - Author credits in source
  - Michael Zingman, N4IRR - Added text support
+ - Danny Lloyd, KB4MDD - Added dtmf decode
 
 #### chan_voter.c:
 

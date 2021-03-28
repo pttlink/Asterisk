@@ -44,7 +44,11 @@
  * This program is free software, distributed under the terms of the GNU General Public License Version 2. See the LICENSE file
  * at the top of the source tree for more information.
  *
- */
+  * Changes:
+ * --------
+ * 03/16/21 - Danny Lloyd, KB4MDD <kb4mdd@arrl.net>
+ * added dtmf decode
+*/
 
 /*! \file
  *
@@ -102,6 +106,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 200511 $")
 #include "asterisk/cli.h"
 #include "asterisk/utils.h"
 #include "asterisk/app.h"
+#include "asterisk/dsp.h"
 
 #include "chan_usrp.h"
 
@@ -150,6 +155,9 @@ struct usrp_pvt {
 	unsigned long send_seqno;
 	int warned;
 	int unkey_owed;
+	struct ast_dsp *dsp;
+	int usedtmf;
+
 };
 
 static struct ast_channel *usrp_request(const char *type, int format, void *data, int *cause);
@@ -161,6 +169,7 @@ static int usrp_indicate(struct ast_channel *ast, int cond, const void *data, si
 static int usrp_digit_begin(struct ast_channel *c, char digit);
 static int usrp_digit_end(struct ast_channel *c, char digit, unsigned int duratiion);
 static int usrp_text(struct ast_channel *c, const char *text);
+static int usrp_setoption(struct ast_channel *chan, int option, void *data, int datalen);
 
 
 static const struct ast_channel_tech usrp_tech = {
@@ -176,6 +185,7 @@ static const struct ast_channel_tech usrp_tech = {
 	.send_text = usrp_text,
 	.send_digit_begin = usrp_digit_begin,
 	.send_digit_end = usrp_digit_end,
+	.setoption = usrp_setoption,
 };
 
 #define MAX_CHANS 16
@@ -185,23 +195,11 @@ static int handle_usrp_show(int fd, int argc, char *argv[])
 {
 	char s[256];
 	struct usrp_pvt *p;
-	struct ast_channel *chan;
 	int i;
-	int ci, di;
 	// ast_cli(fd, "handle_usrp_show\n");
 	for (i=0; i<MAX_CHANS; i++) {
 		p = usrp_channels[i];
 		if (p) {
-			chan = p->owner;
-			ci = 0;
-			di = 0;
-			if (chan) {
-				ci = 1;
-				if (AST_LIST_EMPTY(&chan->readq))
-					di = 1;
-				else
-					di = 2;
-			}
 			sprintf(s, "%s txkey %-3s rxkey %d read %lu write %lu", p->stream, (p->txkey) ? "yes" : "no", p->rxkey, p->readct, p->writect);
 			ast_cli(fd, "%s\n", s);
 		}
@@ -216,10 +214,6 @@ static struct ast_cli_entry cli_usrp_show = {
 
 static int usrp_call(struct ast_channel *ast, char *dest, int timeout)
 {
-	struct usrp_pvt *p;
-
-	p = ast->tech_pvt;
-
 	if ((ast->_state != AST_STATE_DOWN) && (ast->_state != AST_STATE_RESERVED)) {
 		ast_log(LOG_WARNING, "usrp_call called on %s, neither down nor reserved\n", ast->name);
 		return -1;
@@ -336,6 +330,7 @@ static int usrp_hangup(struct ast_channel *ast)
 		ast_log(LOG_WARNING, "Asked to hangup channel not connected\n");
 		return 0;
 	}
+	if (p->dsp) ast_dsp_free(p->dsp); 
 	// TODO: do we need locking for this?
 	for (i=0; i<MAX_CHANS; i++) {
 		if (usrp_channels[i] == p) {
@@ -394,13 +389,14 @@ static int usrp_text(struct ast_channel *ast, const char *text)
 
 static int usrp_digit_begin(struct ast_channel *ast, char digit)
 {
-	ast_log(LOG_DEBUG, "chan_usrp: FIXME: usrp_digit_begin\n");
 	return 0;
 }
 
-static int usrp_digit_end(struct ast_channel *ast, char digit, unsigned int duratiion)
+static int usrp_digit_end(struct ast_channel *ast, char digit, unsigned int duration)
 {
-	ast_log(LOG_DEBUG, "chan_usrp: FIXME: usrp_digit_end\n");
+	/* no better use for received digits than print them */
+	ast_verbose(" << Console Received digit %c of duration %u ms >> \n", 
+		digit, duration);
 	return 0;
 }
 
@@ -415,7 +411,7 @@ static struct ast_frame  *usrp_xread(struct ast_channel *ast)
  	int n;
 	int datalen;
 	struct ast_frame fr;
-        struct usrp_rxq *qp;
+    struct usrp_rxq *qp;
 	struct _chan_usrp_bufhdr *bufhdrp = (struct _chan_usrp_bufhdr *) buf;
 	char *bufdata = &buf[ sizeof(struct _chan_usrp_bufhdr) ];
 
@@ -459,7 +455,7 @@ static struct ast_frame  *usrp_xread(struct ast_channel *ast)
 				fprintf(stderr, "repeater_chan_usrp: possible data loss, expected seq %lu received %lu\n", p->rxseq, seq);
 			}
 			p->rxseq = seq + 1;
-			// TODO: add DTMF. TEXT processing added N4IRR
+			// TODO: TEXT processing added N4IRR
 			if (datalen == USRP_VOICE_FRAME_SIZE) {
 				qp = ast_malloc(sizeof(struct usrp_rxq));
 				if (!qp)
@@ -508,7 +504,7 @@ static struct ast_frame  *usrp_xread(struct ast_channel *ast)
 static int usrp_xwrite(struct ast_channel *ast, struct ast_frame *frame)
 {
 	struct usrp_pvt *p = ast->tech_pvt;
-	struct ast_frame fr;
+	struct ast_frame fr, *f;
 	struct usrp_rxq *qp;
 	int n;
 	char buf[USRP_VOICE_FRAME_SIZE + AST_FRIENDLY_OFFSET + SSO];
@@ -573,7 +569,8 @@ static int usrp_xwrite(struct ast_channel *ast, struct ast_frame *frame)
 			remque((struct qelem *) qp);
 			memcpy(buf + AST_FRIENDLY_OFFSET,qp->buf,USRP_VOICE_FRAME_SIZE);
 			ast_free(qp);
-
+			
+			memset(&fr,0,sizeof(fr));
 			fr.datalen = USRP_VOICE_FRAME_SIZE;
 			fr.samples = 160;
 			fr.frametype = AST_FRAME_VOICE;
@@ -585,10 +582,28 @@ static int usrp_xwrite(struct ast_channel *ast, struct ast_frame *frame)
 			fr.delivery.tv_sec = 0;
 			fr.delivery.tv_usec = 0;
 			ast_queue_frame(ast,&fr);
+			
+			if (p->usedtmf && p->dsp)
+			{
+				f = ast_dsp_process(ast,p->dsp,&fr);
+				if ((f->frametype == AST_FRAME_DTMF_END) || (f->frametype == AST_FRAME_DTMF_BEGIN))
+				{
+					if ((f->subclass == 'm') || (f->subclass == 'u'))
+					{
+						f->frametype = AST_FRAME_NULL;
+						f->subclass = 0;
+						ast_queue_frame(ast, f); 
+					}
+					if (f->frametype == AST_FRAME_DTMF_END)
+						ast_log(LOG_NOTICE,"Got DTMF char %c\n",f->subclass);
+					ast_queue_frame(ast, f); 
+				}
+			}
 		}
 	}
 	if (p->rxkey == 1)
 	{
+		memset(&fr,0,sizeof(fr));
 		fr.datalen = 0;
 		fr.samples = 0;
 		fr.frametype = AST_FRAME_CONTROL;
@@ -624,6 +639,44 @@ static int usrp_xwrite(struct ast_channel *ast, struct ast_frame *frame)
 	return 0;
 }
 
+static int usrp_setoption(struct ast_channel *chan, int option, void *data, int datalen)
+{
+	char *cp;
+	struct usrp_pvt *o = chan->tech_pvt;
+
+	/* all supported options require data */
+	if (!data || (datalen < 1)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	switch (option) {
+	case AST_OPTION_TONE_VERIFY:
+		cp = (char *) data;
+		switch (*cp) {
+		case 1:
+			ast_log(LOG_DEBUG, "Set option TONE VERIFY, mode: OFF(0) on %s\n",chan->name);
+			o->usedtmf = 1;
+			break;
+		case 2:
+			ast_log(LOG_DEBUG, "Set option TONE VERIFY, mode: MUTECONF/MAX(2) on %s\n",chan->name);
+			o->usedtmf = 1;
+			break;
+		case 3:
+			ast_log(LOG_DEBUG, "Set option TONE VERIFY, mode: DISABLE DETECT(3) on %s\n",chan->name);
+			o->usedtmf = 0;
+			break;
+		default:
+			ast_log(LOG_DEBUG, "Set option TONE VERIFY, mode: OFF(0) on %s\n",chan->name);
+			o->usedtmf = 1;
+			break;
+		}
+		break;
+	}
+	errno = 0;
+	return 0;
+}
+
 static struct ast_channel *usrp_new(struct usrp_pvt *i, int state)
 {
 	struct ast_channel *tmp;
@@ -650,11 +703,21 @@ static struct ast_channel *usrp_new(struct usrp_pvt *i, int state)
 				ast_hangup(tmp);
 			}
 		}
+		i->dsp = ast_dsp_new();
+		if (i->dsp)
+		{
+#ifdef  NEW_ASTERISK
+          ast_dsp_set_features(i->dsp,DSP_FEATURE_DIGIT_DETECT);
+          ast_dsp_set_digitmode(i->dsp,DSP_DIGITMODE_DTMF | DSP_DIGITMODE_MUTECONF | DSP_DIGITMODE_RELAXDTMF);
+#else
+          ast_dsp_set_features(i->dsp,DSP_FEATURE_DTMF_DETECT);
+          ast_dsp_digitmode(i->dsp,DSP_DIGITMODE_DTMF | DSP_DIGITMODE_MUTECONF | DSP_DIGITMODE_RELAXDTMF);
+#endif
+		}
 	} else
 		ast_log(LOG_WARNING, "Unable to allocate channel structure\n");
 	return tmp;
 }
-
 
 static struct ast_channel *usrp_request(const char *type, int format, void *data, int *cause)
 {
