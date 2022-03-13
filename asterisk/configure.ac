@@ -216,6 +216,7 @@ AST_EXT_LIB_SETUP([VPB], [Voicetronix API], [vpb])
 AST_EXT_LIB_SETUP([ZLIB], [zlib], [z])
 AST_EXT_LIB_SETUP([ZAPTEL], [Zaptel], [zaptel])
 AST_EXT_LIB_SETUP([BLKID], [Blkid], [blkid])
+AST_EXT_LIB_SETUP([PIGPIO], [Pigpio], [pigpio])
 
 # check for basic system features and functionality before
 # checking for package libraries
@@ -1324,6 +1325,12 @@ AST_EXT_LIB_CHECK([BLKID], [blkid], [blkid_new_probe_from_filename], [blkid/blki
 if test "${PBX_BLKID}" = 1; then
 	PBX_BLKID=1
 	AC_DEFINE([HAVE_BLKID], 1, [Define if your system has the blkid libraries.])
+fi
+
+AST_EXT_LIB_CHECK([PIGPIO], [pigpio], [gpioInitialise], [pigpio.h])
+if test "${PBX_PIGPIO}" = 1; then
+	PBX_PIGPIO=1
+	AC_DEFINE([HAVE_PIGPIO], 1, [Define to indicate the pigpio library.])
 fi
 
 AST_EXT_LIB_CHECK([OPENSSL], [ssl], [SSL_connect], [openssl/ssl.h], [-lcrypto])
