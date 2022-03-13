@@ -501,7 +501,7 @@ static int load_module(void)
 {
 	/* Configure pigpio library to turn off internal signal handling */
 	int gpio_status, gpio_cfg = 0;
-	gpio_cfg = gpioCfgGetInternals()
+	gpio_cfg = gpioCfgGetInternals();
 	gpio_cfg |= PI_CFG_NOSIGHANDLER;
 	gpioCfgSetInternals(gpio_cfg);
 
