@@ -399,6 +399,8 @@ static int do_reload(int loading)
 		if (!was_enabled && (refresh_thread == AST_PTHREADT_NULL)) {
 			if (ast_pthread_create_background(&refresh_thread, NULL, do_refresh, NULL) < 0) {
 				ast_log(LOG_ERROR, "Unable to start refresh thread.\n");
+			} else {
+				pthread_setname_np(refresh_thread, "do_refresh");
 			}
 		}
 		/* make a background refresh happen right away */

@@ -3337,7 +3337,9 @@ pthread_attr_t attr;
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
         ast_pthread_create(&el_register_thread,&attr,el_register,(void *)instp);
+		pthread_setname_np(el_register_thread, "el_register");
         ast_pthread_create(&instp->el_reader_thread,&attr,el_reader,(void *)instp);
+		pthread_setname_np(instp->el_reader_thread, "el_reader");
 	instances[ninstances++] = instp;
 
 
@@ -3394,6 +3396,7 @@ int load_module(void)
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
         ast_pthread_create(&el_directory_thread,&attr,el_directory,NULL);
+		pthread_setname_np(el_directory_thread, "el_directory");
 #ifdef	NEW_ASTERISK
 	ast_cli_register_multiple(el_cli,sizeof(el_cli) / 
 		sizeof(struct ast_cli_entry));

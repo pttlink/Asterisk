@@ -23656,6 +23656,7 @@ struct sched_param      rptmaster_sched;
 	/* start em all */
 	for(i = 0; i < n; i++)
 	{
+		char thread_name[16] = "rpt";
 		load_rpt_vars(i,1);
 
 		/* if is a remote, dont start one for it */
@@ -23707,6 +23708,8 @@ struct sched_param      rptmaster_sched;
 		pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 	        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 		ast_pthread_create(&rpt_vars[i].rpt_thread,&attr,rpt,(void *) &rpt_vars[i]);
+		strcat(thread_name, rpt_vars[i].name);
+		pthread_setname_np(rpt_vars[i].rpt_thread, thread_name);
 	}
 	usleep(500000);
 	time(&starttime);
@@ -26951,6 +26954,7 @@ static int load_module(void)
 		return -1;
 	}
 	ast_pthread_create(&rpt_master_thread,NULL,rpt_master,NULL);
+	pthread_setname_np(rpt_master_thread, "rpt_master");
 
 #ifdef	NEW_ASTERISK
 	ast_cli_register_multiple(rpt_cli,sizeof(rpt_cli) / 

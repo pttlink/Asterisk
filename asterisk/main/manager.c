@@ -2448,6 +2448,8 @@ static void *accept_thread(void *ignore)
 		AST_LIST_UNLOCK(&sessions);
 		if (ast_pthread_create_background(&s->t, &attr, session_do, s))
 			destroy_session(s);
+		else
+			pthread_setname_np(s->t, "session_do");
 	}
 	pthread_attr_destroy(&attr);
 	return NULL;
@@ -3172,6 +3174,7 @@ int init_manager(void)
 		if (option_verbose)
 			ast_verbose("Asterisk Management interface listening on port %d\n", portno);
 		ast_pthread_create_background(&t, NULL, accept_thread, NULL);
+		pthread_setname_np(t, "accept_thread");
 	}
 	return 0;
 }

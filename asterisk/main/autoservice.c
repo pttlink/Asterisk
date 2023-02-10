@@ -235,6 +235,7 @@ int ast_autoservice_start(struct ast_channel *chan)
 			res = -1;
 		} else {
 			pthread_kill(asthread, SIGURG);
+			pthread_setname_np(asthread, "autoservice_run");
 		}
 	}
 
