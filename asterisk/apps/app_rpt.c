@@ -74,7 +74,7 @@
  *
  * \author Jim Dixon, WB6NIL <jim@lambdatel.com>
  *
- * \note Serious contributions by Steve RoDgers, WA6ZFT <hwstar@rodgers.sdcoxmail.com>
+ * \note Serious contributions by Steve Rodgers, WA6ZFT <hwstar@rodgers.sdcoxmail.com>
  * \note contributions by Steven Henke, W9SH, <w9sh@arrl.net>
  * \note contributions by Mike Zingman, N4IRR
  * \note contributions by Steve Zingman, N4IRS
@@ -2296,15 +2296,15 @@ static struct ast_cli_entry cli_rpt[] = {
 	page_usage, NULL, NULL },
 
         { { "rpt", "globals", "show", NULL },
-	 rpt_do_globals,"Display or modofy rpt globally configured options", 
+	 rpt_do_globals,"Display or modify rpt globally configured options", 
 	globals_usage, NULL, NULL},
 
         { { "rpt", "globals", "set", NULL },
-	 rpt_do_globals,"Display or modofy rpt globally configured options", 
+	 rpt_do_globals,"Display or modify rpt globally configured options", 
 	globals_usage, NULL, NULL},
 
         { { "rpt", "globals", "list", NULL },
-	 rpt_do_globals,"Display or modofy rpt globally configured options", 
+	 rpt_do_globals,"Display or modify rpt globally configured options", 
 	globals_usage, NULL, NULL},
 
         { { "rpt", "utils", "sayip", NULL }, 
@@ -4646,6 +4646,7 @@ static int retrieve_memory(struct rpt *myrpt, char *memory)
 				myrpt->remmode = REM_MODE_LSB;
 				break;
 			case 'F':
+			case 'f':
 				myrpt->remmode = REM_MODE_FM;
 				break;
 			case 'L':
@@ -4725,7 +4726,7 @@ static void cancel_pfxtone(struct rpt *myrpt)
 {
 	struct rpt_tele *telem;
 	if(debug > 2)
-		ast_log(LOG_NOTICE, "cancel_pfxfone!!");
+		ast_log(LOG_NOTICE, "cancel_pfxtone!!");
 	telem = myrpt->tele.next;
 	while(telem != &myrpt->tele)
 	{
@@ -8019,7 +8020,7 @@ static int rpt_do_lstats(int fd, int argc, char *argv[])
 				connecttime %= 3600000L;
 				minutes =  connecttime/60000L;
 				connecttime %= 60000L;
-				seconds =  connecttime/1000L;
+				seconds = (int) connecttime/1000L;
 				connecttime %= 1000L;
 				snprintf(conntime, 20, "%02d:%02d:%02d:%02d",
 					hours, minutes, seconds, (int) connecttime);
