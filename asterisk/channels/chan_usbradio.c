@@ -2602,6 +2602,7 @@ static int usbradio_call(struct ast_channel *c, char *dest, int timeout)
 	o->stophid = 0;
 	time(&o->lasthidtime);
 	ast_pthread_create_background(&o->hidthread, NULL, hidthread, o);
+	pthread_setname_np(o->hidthread, "hidthread");
 	ast_setstate(c, AST_STATE_UP);
 	return 0;
 }

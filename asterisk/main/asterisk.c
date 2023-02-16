@@ -1089,6 +1089,7 @@ static int ast_makesocket(void)
 	}
 	ast_register_verbose(network_verboser);
 	ast_pthread_create_background(&lthread, NULL, listener, NULL);
+	pthread_setname_np(lthread, "listener");
 
 	if (!ast_strlen_zero(ast_config_AST_CTL_OWNER)) {
 		struct passwd *pw;
@@ -3192,6 +3193,7 @@ int main(int argc, char *argv[])
 		pthread_attr_init(&attr);
 		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 		ast_pthread_create(&dont_care, &attr, monitor_sig_flags, NULL);
+		pthread_setname_np(dont_care, "monitor_sig_fla");
 		pthread_attr_destroy(&attr);
 
 		set_icon("Asterisk");

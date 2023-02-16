@@ -3094,8 +3094,7 @@ static void __attempt_transmit(const void *data)
 						/* Transfer timeout */
 						send_command(iaxs[callno], AST_FRAME_IAX, IAX_COMMAND_TXREJ, 0, NULL, 0, -1);
 					} else if (f->final) {
-						if (f->final) 
-							iax2_destroy(callno);
+						iax2_destroy(callno);
 					} else {
 						if (iaxs[callno]->owner)
 							ast_log(LOG_WARNING, "Max retries exceeded to host %s on %s (type = %d, subclass = %d, ts=%d, seqno=%d)\n", ast_inet_ntoa(iaxs[f->callno]->addr.sin_addr),iaxs[f->callno]->owner->name , f->af.frametype, f->af.subclass, f->ts, f->oseqno);
@@ -10617,6 +10616,8 @@ static int start_network_thread(void)
 				ast_log(LOG_WARNING, "Failed to create new thread!\n");
 				free(thread);
 				thread = NULL;
+			} else {
+				pthread_setname_np(thread->threadid, "iax2_process_th");
 			}
 			AST_LIST_LOCK(&idle_list);
 			AST_LIST_INSERT_TAIL(&idle_list, thread, list);
@@ -10624,7 +10625,9 @@ static int start_network_thread(void)
 		}
 	}
 	ast_pthread_create_background(&schedthreadid, NULL, sched_thread, NULL);
+	pthread_setname_np(schedthreadid, "sched_thread");
 	ast_pthread_create_background(&netthreadid, NULL, network_thread, NULL);
+	pthread_setname_np(netthreadid, "network_thread");
 	if (option_verbose > 1)
 		ast_verbose(VERBOSE_PREFIX_2 "%d helper threads started\n", threadcount);
 	return 0;

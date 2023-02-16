@@ -52,6 +52,13 @@ duplex = 1                              ; 0 = Half duplex with no telemetry tone
                                         ; 3 = Full Duplex with telemetry tones and hang time, but no repeated audio.
                                         ; 4 = Full Duplex with telemetry tones and hang time. Repeated audio only when the autopatch is down.
 
+;propagate_dtmf	= yes			; DTMF sent to system from link gets
+					; repeated onto main system output (optional)
+
+;propagate_phonedtmf = yes		; DTMF sent to system from phone gets
+					; repeated into main system output and
+					; link outputs (optional)							
+
 linktolink = no				; disables forcing physical half-duplex operation of main repeater while
 					; still keeping half-duplex semantics (optional)
 
@@ -73,6 +80,7 @@ etxgain = 3				; Echolink transmit gain adjustment
 scheduler = schedule			; scheduler stanza
 functions = functions			; Repeater Function stanza
 phone_functions = functions		; Phone Function stanza
+dphone_functions = functions		; Dumb phone function stanza for 'D' mode
 link_functions = functions		; Link Function stanza
 
 telemetry = telemetry			; Telemetry stanza
@@ -129,6 +137,11 @@ telemdefault = 1                        ; 0 = telemetry output off
 
 telemdynamic = 1                        ; 0 = disallow users to change the local telemetry setting with a COP command,
                                         ; 1 = Allow users to change the setting with a COP command. (default = 1)
+
+;notelemtx = yes			; telemetry output does not make main system transmit (optional)
+
+telemnomdb = 0                          ; Set the default telemetry level. (default = 0)
+telemduckdb = -9                        ; Reduct telemetry level when ducking (default = -9)
 
 ;beaconing = 0				; Send ID regardless of repeater activity (Required in the UK, but probably illegal in the US)
 
@@ -203,6 +216,7 @@ startup_macro =
 ;set to 1 to use custom statpost url for this node only
 ;statpost_custom=0			; If left blank it will default to using the globa satpost
 ;statpost_url=<url to custom handler>	; Set to a valid URL if overriding (e.g, http://stats.allstarlink.org/uhandler.php)
+;statpost_program=/usr/bin/wget,-q,--output-document=/dev/null,--no-check-certificate
 
 [functions]
 
