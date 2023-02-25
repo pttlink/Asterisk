@@ -1190,8 +1190,8 @@ static int el_text(struct ast_channel *ast, const char *text)
 #define	MAXLINKSTRS 200
 
 	struct el_pvt *p = ast->tech_pvt;
-	char *cmd = NULL,*arg1 = NULL,*arg2 = NULL;
-	char *arg3 = NULL,delim = ' ',*saveptr,*cp,*pkt;
+	char *cmd = NULL,*arg1 = NULL;
+	char delim = ' ',*saveptr,*cp,*pkt;
 	char buf[200],*ptr,str[200],*arg4 = NULL,*strs[MAXLINKSTRS];
 	int i,j,k,x;
 
@@ -1290,8 +1290,6 @@ static int el_text(struct ast_channel *ast, const char *text)
 	}
 
 	arg1 = strtok_r(NULL, &delim, &saveptr);
-	arg2 = strtok_r(NULL, &delim, &saveptr);
-	arg3 = strtok_r(NULL, &delim, &saveptr);
 	arg4 = strtok_r(NULL, &delim, &saveptr);
 
 	if (!strcasecmp(cmd,"D"))
@@ -1499,9 +1497,6 @@ static void process_cmd(char *buf, char *fromip,struct el_instance *instp)
 {
    char *cmd = NULL;
    char *arg1 = NULL;
-   char *arg2 = NULL;
-   char *arg3 = NULL;
-
    char delim = ' ';
    char *saveptr;
    char *ptr;
@@ -1550,8 +1545,6 @@ static void process_cmd(char *buf, char *fromip,struct el_instance *instp)
 
    /* This version:  up to 3 parameters */
    arg1 = strtok_r(NULL, &delim, &saveptr);
-   arg2 = strtok_r(NULL, &delim, &saveptr);
-   arg3 = strtok_r(NULL, &delim, &saveptr);
 
    if ((strcmp(cmd, "o.conip") == 0) ||
        (strcmp(cmd, "o.dconip") == 0)) {
@@ -2251,7 +2244,7 @@ static int el_net_read(int sock,unsigned char *buf1,int buf1len,
 	int compressed,struct z_stream_s *z)
 {
 unsigned char buf[512];
-int	n,i,r;
+int	n,r;
 
 	for(;;)
 	{
@@ -2269,8 +2262,6 @@ int	n,i,r;
 		z->avail_in = n;
 		z->next_out = buf1;
 		z->avail_out = buf1len;
-		i = Z_NO_FLUSH;
-		if (n < 1) i = Z_FINISH;
 		r = inflate(z,Z_NO_FLUSH);
 		if ((r != Z_OK) && (r != Z_STREAM_END))
 		{

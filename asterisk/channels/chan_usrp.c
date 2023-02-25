@@ -463,7 +463,7 @@ static struct ast_frame  *usrp_xread(struct ast_channel *ast)
 					ast_log(LOG_NOTICE,"Cannot malloc for qp\n");
 				} else {
                                        if (bufhdrp->type == USRP_TYPE_TEXT) {
-					insque((struct qelem *) qp,(struct qelem *) p->rxq.qe_back);
+											   insque((struct qelem *) qp,(struct qelem *) p->rxq.qe_back);
                                                char buf1[320];
                                                strcpy(buf1, bufdata);
                                                memset(&fr,0,sizeof(fr));
@@ -544,7 +544,7 @@ static int usrp_xwrite(struct ast_channel *ast, struct ast_frame *frame)
 			{
 				qp = p->rxq.qe_forw;
 				remque((struct qelem *)qp);
-				free(qp);
+				ast_free(qp);
 			}
 			if (p->rxkey) p->rxkey = 1;
 		}			

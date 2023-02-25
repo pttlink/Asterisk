@@ -4404,16 +4404,9 @@ static struct ast_frame *dahdi_handle_event(struct ast_channel *ast)
 							ast_hangup(chan);
 						} else {
  							struct ast_channel *other = ast_bridged_channel(p->subs[SUB_THREEWAY].owner);
- 							int way3bridge = 0, cdr3way = 0;
- 							
  							if (!other) {
  								other = ast_bridged_channel(p->subs[SUB_REAL].owner);
- 							} else
- 								way3bridge = 1;
- 							
- 							if (p->subs[SUB_THREEWAY].owner->cdr)
- 								cdr3way = 1;
- 							
+ 							}
 							if (option_verbose > 2)	
 								ast_verbose(VERBOSE_PREFIX_3 "Started three way call on channel %d\n", p->channel);
 							/* Start music on hold if appropriate */
@@ -4450,16 +4443,9 @@ static struct ast_frame *dahdi_handle_event(struct ast_channel *ast)
 						    (p->transfertobusy || (ast->_state != AST_STATE_BUSY))) {
 							int otherindex = SUB_THREEWAY;
 							struct ast_channel *other = ast_bridged_channel(p->subs[SUB_THREEWAY].owner);
-							int way3bridge = 0, cdr3way = 0;
-							
 							if (!other) {
 								other = ast_bridged_channel(p->subs[SUB_REAL].owner);
-							} else
-								way3bridge = 1;
-							
-							if (p->subs[SUB_THREEWAY].owner->cdr)
-								cdr3way = 1;
-
+							}
 							if (option_verbose > 2)
 								ast_verbose(VERBOSE_PREFIX_3 "Building conference on call on %s and %s\n", p->subs[SUB_THREEWAY].owner->name, p->subs[SUB_REAL].owner->name);
 							/* Put them in the threeway, and flip */
@@ -7296,7 +7282,7 @@ static int pri_create_spanmap(int span, int trunkgroup, int logicalspan)
 static struct dahdi_pvt *mkintf(int channel, const struct dahdi_chan_conf *conf, struct dahdi_pri *pri, int reloading)
 {
 	/* Make a dahdi_pvt structure for this interface (or CRV if "pri" is specified) */
-	struct dahdi_pvt *tmp = NULL, *tmp2,  *prev = NULL;
+	struct dahdi_pvt *tmp = NULL, *tmp2;
 	char fn[80];
 #if 1
 	struct dahdi_bufferinfo bi;
@@ -7320,7 +7306,6 @@ static struct dahdi_pvt *mkintf(int channel, const struct dahdi_chan_conf *conf,
 #endif
 
 	tmp2 = *wlist;
-	prev = NULL;
 
 	while (tmp2) {
 		if (!tmp2->destroy) {
@@ -7333,7 +7318,6 @@ static struct dahdi_pvt *mkintf(int channel, const struct dahdi_chan_conf *conf,
 				break;
 			}
 		}
-		prev = tmp2;
 		tmp2 = tmp2->next;
 	}
 

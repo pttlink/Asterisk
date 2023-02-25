@@ -781,7 +781,6 @@ static void findmeexec(struct fm_args *tpargs)
 	char *rest, *number;
 	struct findme_user *tmpuser;
 	struct findme_user *fmuser;
-	struct findme_user *headuser;
 	struct findme_user_listptr *findme_user_list;
 	int status;
 
@@ -887,7 +886,6 @@ static void findmeexec(struct fm_args *tpargs)
 		AST_LIST_TRAVERSE_SAFE_END
 		fmuser = NULL;
 		tmpuser = NULL;
-		headuser = NULL;	
 		if (winner)
 			break;
 

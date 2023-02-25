@@ -85,6 +85,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 200511 $")
 #include <errno.h>
 #include <sys/mman.h>
 #include <alsa/asoundlib.h>
+#include <i2c/smbus.h>
 #include <linux/i2c-dev.h>		//Needed for I2C port
 #include <math.h>
 

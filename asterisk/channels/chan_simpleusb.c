@@ -629,7 +629,7 @@ struct chan_simpleusb_pvt {
 	struct qelem echoq;
 	int echomax;
 
-	int    		hdwtype;
+	int    	hdwtype;
 	int		hid_gpio_ctl;		
 	int		hid_gpio_ctl_loc;	
 	int		hid_io_cor; 		

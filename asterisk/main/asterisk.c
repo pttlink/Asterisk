@@ -2021,7 +2021,7 @@ static char *cli_prompt(EditLine *el)
 				ast_copy_string(prompt + sizeof(prompt) - strlen(term_code) - 1, term_code, strlen(term_code) + 1);
 			} else {
 				/* This looks wrong, but we've already checked the length of term_code to ensure it's safe */
-				strncat(p, term_code, sizeof(term_code));
+				strncat(p, term_code, sizeof(*p));
 			}
 		}
 	} else if (remotehostname)
