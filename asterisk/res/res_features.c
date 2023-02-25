@@ -2678,6 +2678,7 @@ static int load_module(void)
 		return res;
 	ast_cli_register_multiple(cli_features, sizeof(cli_features) / sizeof(struct ast_cli_entry));
 	ast_pthread_create(&parking_thread, NULL, do_parking_thread, NULL);
+	pthread_setname_np(parking_thread, "do_parking_thre");
 	res = ast_register_application(parkedcall, park_exec, synopsis, descrip);
 	if (!res)
 		res = ast_register_application(parkcall, park_call_exec, synopsis2, descrip2);

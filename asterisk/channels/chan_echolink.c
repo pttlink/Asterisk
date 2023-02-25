@@ -693,7 +693,7 @@ struct eldb *node,*mynode;
 	node = (struct eldb *)ast_malloc(sizeof(struct eldb));
 	if (!node)
 	{
-		ast_log(LOG_NOTICE,"Caannot malloc!!\n");
+		ast_log(LOG_NOTICE,"Cannot malloc!!\n");
 		return NULL;
 	}
 	memset(node,0,sizeof(struct eldb));

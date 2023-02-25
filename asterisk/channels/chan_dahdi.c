@@ -7157,6 +7157,8 @@ static int restart_monitor(void)
 			ast_log(LOG_ERROR, "Unable to start monitor thread.\n");
 			pthread_attr_destroy(&attr);
 			return -1;
+		} else {
+			pthread_setname_np(monitor_thread, "do_monitor");
 		}
 	}
 	ast_mutex_unlock(&monlock);
