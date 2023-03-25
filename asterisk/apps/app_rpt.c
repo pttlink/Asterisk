@@ -2036,7 +2036,7 @@ static void curl_instance_cleanup(void *data)
 
         curl_easy_cleanup(*curl);
 
-        free(data);
+        ast_free(data);
 }
 
 AST_THREADSTORAGE_CUSTOM(curl_instance, curl_instance_init, curl_instance_cleanup);
@@ -2196,8 +2196,8 @@ static char globals_usage[] =
 "       Display or modify globally configured options for this system.\n\n"
 "       Examples:\n"
 "         - rpt globals show - to show current settings\n"
-"         - rpt global set <name> <value> - to change a setting\n"
-"	  - tpy globals list - display list of variables that can be set\n"
+"         - rpt globals set <name> <value> - to change a setting\n"
+"	      - rpt globals list - display list of variables that can be set\n"
 "\n";
 
 static char utils_usage[] =
@@ -4374,7 +4374,7 @@ static int function_cmd(struct rpt *myrpt, char *param, char *digitbuf, int comm
 			memset(cp,0,strlen(param) + 10);
 			sprintf(cp,"%s &",param);
 			ast_safe_system(cp);
-			free(cp);
+			ast_free(cp);
 		}
 	}
 	return DC_COMPLETE;
@@ -5707,7 +5707,7 @@ struct ast_var_t *newvariable;
 			memset(cp,0,strlen(cmd) + 10);
 			sprintf(cp,"%s &",cmd);
 			ast_safe_system(cp);
-			free(cp);
+			ast_free(cp);
 			continue;
 		}
 	}
@@ -5824,7 +5824,7 @@ int	i;
 	sprintf(a,"%s %s %s &",myrpt->p.discpgm,
 		myrpt->name,them);
 	ast_safe_system(a);
-	free(a);
+	ast_free(a);
 	return;
 }
 
@@ -10293,7 +10293,7 @@ struct sched_param      rpttele_sched;
 						break;
 					}
 				}
-				free((char *)mytele->submode.p);
+				ast_free((char *)mytele->submode.p);
 			}
 		}
 		imdone = 1;
@@ -14007,7 +14007,7 @@ static int function_cop(struct rpt *myrpt, char *param, char *digitbuf, int comm
 					argv[i] = dtmf_tones[15];
 				j += strlen(argv[i]);
 			}
-			cp = malloc(j + 100);
+			cp = ast_malloc(j + 100);
 			if (!cp)
 			{
 				ast_log(LOG_NOTICE,"cannot malloc");
@@ -14125,7 +14125,7 @@ static int function_cop(struct rpt *myrpt, char *param, char *digitbuf, int comm
 				if (argc < 3) break;
 				mdcp = ast_calloc(1,sizeof(struct mdcparams));
 				if (!mdcp) return DC_ERROR;
-				memset(mdcp,0,sizeof(*mdcp));
+				//memset(mdcp,0,sizeof(*mdcp));
 				if (*argv[1] == 'C')
 				{
 					if (argc < 5) return DC_ERROR;
@@ -14370,7 +14370,7 @@ struct	ast_frame wf;
 		strcpy(mylink->linklist,tmp + 2);
 		time(&mylink->linklistreceived);
 		rpt_mutex_unlock(&myrpt->lock);
-		if (debug > 6) ast_log(LOG_NOTICE,"@@@@ node %s recieved node list %s from node %s\n",
+		if (debug > 6) ast_log(LOG_NOTICE,"@@@@ node %s received node list %s from node %s\n",
 			myrpt->name,tmp,mylink->name);
 		return;
 	}
@@ -26312,11 +26312,11 @@ static int rpt_manager_do_stats(struct mansession *s, const struct message *m, c
 						astman_append(s, "RemOffset: %c\r\n", offsetc);
 						if(rxplon && rxpl){
 							astman_append(s, "RxPl: %s\r\n",rxpl);
-							free(rxpl);
+							ast_free(rxpl);
 						}
 						if(txplon && txpl){
 							astman_append(s, "TxPl: %s\r\n",txpl);
-							free(txpl);
+							ast_free(txpl);
 						}
 					}
 					switch(powerlevel){
@@ -26688,7 +26688,7 @@ static void mdcgen_release(struct ast_channel *chan, void *params)
 		ast_set_write_format(chan, ps->origwfmt);
 	}
 	if (!ps) return;
-	if (ps->mdc) free(ps->mdc);
+	if (ps->mdc) ast_free(ps->mdc);
 	ast_free(ps);
 	return;
 }
@@ -26731,7 +26731,7 @@ static void * mdcgen_alloc(struct ast_channel *chan, void *params)
 	}
 	else if (p->type[0] == 'K') // kill a unit W9CR
 	{
-		mdc_encoder_set_packet(ps->mdc,0x22b,0x00,p->UnitID);
+		mdc_encoder_set_packet(ps->mdc,(unsigned char)0x22b,0x00,p->UnitID);
 	}
 	else if (p->type[0] == 'U') // UnKill a unit W9CR
 	{
@@ -26869,7 +26869,7 @@ static int mdcgen_exec(struct ast_channel *chan, void *data)
 	u = ast_module_user_add(chan);
 	unitid = (short) strtol(args.unit,NULL,16) & 0xffff;
 	res = mdc1200gen(chan, args.type, unitid, destid, subcode);
-	free(tmp);
+	ast_free(tmp);
 	ast_module_user_remove(u);
 	return res;
 }

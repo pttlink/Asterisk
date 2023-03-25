@@ -4271,7 +4271,7 @@ static void tune_rxinput(int fd, struct chan_usbradio_pvt *o, int setsql, int in
 
 		if(o->rxcdtype==CD_XPMR_NOISE)
 		{
-			int normRssi=((32767-o->pmrChan->rxRssi)*x/32767);			
+			int normRssi=((32767-o->pmrChan->rxRssi)*x/32767);
 
 			if((meas/(measnoise/10))>26){
 				ast_cli(fd,"WARNING: Insufficient high frequency noise from receiver.\n");

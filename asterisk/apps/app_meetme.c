@@ -1396,7 +1396,6 @@ static int conf_run(struct ast_channel *chan, struct ast_conference *conf, int c
 	int menu_active = 0;
 	int using_pseudo = 0;
 	int duration=20;
-	int hr, min, sec;
 	int sent_event = 0;
 	time_t now;
 	struct ast_dsp *dsp=NULL;
@@ -2285,9 +2284,6 @@ bailoutandtrynormal:
 	
 	if (user->user_no) { /* Only cleanup users who really joined! */
 		now = time(NULL);
-		hr = (now - user->jointime) / 3600;
-		min = ((now - user->jointime) % 3600) / 60;
-		sec = (now - user->jointime) % 60;
 
 		if (sent_event) {
 			manager_event(EVENT_FLAG_CALL, "MeetmeLeave",

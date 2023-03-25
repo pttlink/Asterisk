@@ -118,7 +118,6 @@ static int ices_exec(struct ast_channel *chan, void *data)
 	int pid = -1;
 	int flags;
 	int oreadformat;
-	struct timeval last;
 	struct ast_frame *f;
 	char filename[256]="";
 	char *c;
@@ -129,8 +128,6 @@ static int ices_exec(struct ast_channel *chan, void *data)
 	}
 
 	u = ast_module_user_add(chan);
-	
-	last = ast_tv(0, 0);
 	
 	if (pipe(fds)) {
 		ast_log(LOG_WARNING, "Unable to create pipe\n");

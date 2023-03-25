@@ -105,8 +105,8 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision$")
 
 /* WB6NIL backport stuff */
 
-#define	DAHDI_FILE_TIMER "/dev/zap/timer"
-#define	DAHDI_FILE_PSEUDO "/dev/zap/pseudo"
+#define	DAHDI_FILE_TIMER "/dev/dahdi/timer"
+#define	DAHDI_FILE_PSEUDO "/dev/dahdi/pseudo"
 #define	AST_FORMAT_AUDIO_UNDEFINED 0
 #define	BAD_RADIO_HACK
 #define	ast_free_ptr ast_free
@@ -3777,7 +3777,7 @@ static struct iax2_peer *realtime_peer(const char *peername, struct sockaddr_in 
 				if (!strcasecmp(tmp->name, "host")) {
 					struct ast_hostent ahp;
 					struct hostent *hp;
-					if (!(hp = ast_gethostbyname(tmp->value, &ahp)) || (memcmp(hp->h_addr, &sin->sin_addr, sizeof(hp->h_addr)))) {
+					if (!(hp = ast_gethostbyname(tmp->value, &ahp)) || memcmp(hp->h_addr, &sin->sin_addr, hp->h_length)) {
 						/* No match */
 						ast_variables_destroy(var);
 						var = NULL;
@@ -3891,7 +3891,7 @@ static struct iax2_user *realtime_user(const char *username, struct sockaddr_in 
 				if (!strcasecmp(tmp->name, "host")) {
 					struct ast_hostent ahp;
 					struct hostent *hp;
-					if (!(hp = ast_gethostbyname(tmp->value, &ahp)) || (memcmp(hp->h_addr, &sin->sin_addr, sizeof(hp->h_addr)))) {
+					if (!(hp = ast_gethostbyname(tmp->value, &ahp)) || memcmp(hp->h_addr, &sin->sin_addr, hp->h_length)) {
 						/* No match */
 						ast_variables_destroy(var);
 						var = NULL;
@@ -8079,7 +8079,6 @@ static void *iax_park_thread(void *stuff)
 	struct iax_dual *d;
 	struct ast_frame *f;
 	int ext;
-	int res;
 	d = stuff;
 	chan1 = d->chan1;
 	chan2 = d->chan2;
@@ -8087,7 +8086,7 @@ static void *iax_park_thread(void *stuff)
 	f = ast_read(chan1);
 	if (f)
 		ast_frfree(f);
-	res = ast_park_call(chan1, chan2, 0, &ext);
+	ast_park_call(chan1, chan2, 0, &ext);
 	ast_hangup(chan2);
 	ast_log(LOG_NOTICE, "Parked on extension '%d'\n", ext);
 	return NULL;

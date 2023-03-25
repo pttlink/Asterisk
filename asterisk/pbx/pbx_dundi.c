@@ -2450,7 +2450,6 @@ static int dundi_show_peer(int fd, int argc, char *argv[])
 {
 	struct dundi_peer *peer;
 	struct permission *p;
-	char *order;
 	char eid_str[20];
 	int x, cnt;
 	
@@ -2462,22 +2461,6 @@ static int dundi_show_peer(int fd, int argc, char *argv[])
 			break;
 	}
 	if (peer) {
-		switch(peer->order) {
-		case 0:
-			order = "Primary";
-			break;
-		case 1:
-			order = "Secondary";
-			break;
-		case 2:
-			order = "Tertiary";
-			break;
-		case 3:
-			order = "Quartiary";
-			break;
-		default:
-			order = "Unknown";
-		}
 		ast_cli(fd, "Peer:    %s\n", dundi_eid_to_str(eid_str, sizeof(eid_str), &peer->eid));
 		ast_cli(fd, "Model:   %s\n", model2str(peer->model));
 		ast_cli(fd, "Host:    %s\n", peer->addr.sin_addr.s_addr ? ast_inet_ntoa(peer->addr.sin_addr) : "<Unspecified>");

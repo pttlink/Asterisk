@@ -4527,7 +4527,7 @@ int ast_say_date_with_format_it(struct ast_channel *chan, time_t time, const cha
 					snprintf(nextmsg,sizeof(nextmsg), "digits/%d", tm.tm_hour - 12);
 				else
 					snprintf(nextmsg,sizeof(nextmsg), "digits/%d", tm.tm_hour);
-					res = wait_file(chan,ints,nextmsg,lang);
+				res = wait_file(chan,ints,nextmsg,lang);
 				break;
 			case 'H':
 			case 'k':
@@ -4551,7 +4551,7 @@ int ast_say_date_with_format_it(struct ast_channel *chan, time_t time, const cha
 					snprintf(nextmsg,sizeof(nextmsg), "digits/p-m");
 				else
 					snprintf(nextmsg,sizeof(nextmsg), "digits/a-m");
-					res = wait_file(chan,ints,nextmsg,lang);
+				res = wait_file(chan,ints,nextmsg,lang);
 				break;
 			case 'Q':
 				/* Shorthand for "Today", "Yesterday", or ABdY */
