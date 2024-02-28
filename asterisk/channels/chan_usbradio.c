@@ -1651,6 +1651,10 @@ static void *hidthread(void *arg)
 				continue;
 			}
 			ast_log(LOG_NOTICE,"Assigned USB device %s to usbradio channel %s\n",s,o->name);
+			if (get_usb_serial(s, serial) > 0) 
+			{
+				strcpy(o->serial, serial);
+			}
 			strcpy(o->devstr,s);
 		}
 		i = usb_get_usbdev(o->devstr);
