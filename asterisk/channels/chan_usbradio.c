@@ -210,20 +210,27 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 200511 $")
 #define HID_RT_OUTPUT		0x02
 
 
-#define	EEPROM_START_ADDR	6
+// EEPROM is 93C64 - 1024 Bits
+// Devices are setup in 64 sections of 2 bytes
+// Physical_Len == 64x2 or 128 Bytes
+// CM108B and CM119B uses 0x00 - 0x32 ( 0-50 )
+
+#define	EEPROM_START_ADDR	0
 #define	EEPROM_END_ADDR		63
 #define	EEPROM_PHYSICAL_LEN	64
 #define EEPROM_TEST_ADDR	EEPROM_END_ADDR
-#define	EEPROM_MAGIC_ADDR	6
-#define	EEPROM_MAGIC		34329
-#define	EEPROM_CS_ADDR		62
-#define	EEPROM_RXMIXERSET	8
-#define	EEPROM_TXMIXASET	9
-#define	EEPROM_TXMIXBSET	10
-#define	EEPROM_RXVOICEADJ	11
-#define	EEPROM_RXCTCSSADJ	13
-#define	EEPROM_TXCTCSSADJ	15
-#define	EEPROM_RXSQUELCHADJ	16
+#define EEPROM_ADDR_OFF		51		// Offset to start storing our variables, original was 0x00
+#define EEPROM_OLD_ADDR_OFF     12              // Old offset 6 start addr, 6 to first used addr
+#define	EEPROM_MAGIC		34329           // Magic Number
+#define	EEPROM_MAGIC_ADDR	0		// Magic Address
+#define	EEPROM_RXMIXERSET	2
+#define	EEPROM_TXMIXASET	3
+#define	EEPROM_TXMIXBSET	4
+#define	EEPROM_RXVOICEADJ	5
+#define	EEPROM_RXCTCSSADJ	7
+#define	EEPROM_TXCTCSSADJ	9
+#define	EEPROM_RXSQUELCHADJ	10
+#define	EEPROM_CS_ADDR		62		// Checksum Address
 
 /*! Global jitterbuffer configuration - by default, jb is disabled */
 static struct ast_jb_conf default_jbconf =
@@ -546,6 +553,7 @@ struct chan_usbradio_pvt {
 	int boost;					/* input boost, scaled by BOOST_SCALE */
 	char devicenum;
 	char devstr[128];
+	char serial[14];
 	int spkrmax;
 	int micmax;
 	int micplaymax;
@@ -785,6 +793,7 @@ static struct chan_usbradio_pvt usbradio_default = {
 	.usedtmf = 1,
 	.rxondelay = 0,
 	.txoffdelay = 0,
+	.serial = "",
 };
 
 /*	DECLARE FUNCTION PROTOTYPES	*/
@@ -1116,7 +1125,7 @@ int	i;
 unsigned short cs;
 
 	cs = 0xffff;
-	buf[EEPROM_MAGIC_ADDR] = EEPROM_MAGIC;
+	buf[EEPROM_ADDR_OFF + EEPROM_MAGIC_ADDR] = EEPROM_MAGIC;
 	for(i = EEPROM_START_ADDR; i < EEPROM_CS_ADDR; i++)
 	{
 		write_eeprom(handle,i,buf[i]);
@@ -1238,6 +1247,7 @@ static int hid_device_mklist(void)
 		(dev->descriptor.idProduct == C119B_PRODUCT_ID) ||
 		((dev->descriptor.idProduct & 0xff00)  == N1KDO_PRODUCT_ID) ||
 		(dev->descriptor.idProduct == C119_PRODUCT_ID)))
+
 		{
                         sprintf(devstr,"%s/%s", usb_bus->dirname,dev->filename);
 			for(i = 0;i < 32; i++)
@@ -1480,10 +1490,25 @@ static struct chan_usbradio_pvt *find_desc_usb(char *devstr)
 
 	if (!devstr)
 		ast_log(LOG_WARNING, "null dev\n");
-
 	for (o = usbradio_default.next; o && devstr && strcmp(o->devstr, devstr) != 0; o = o->next);
 
 	return o;
+}
+
+static int get_usb_serial(char *devstr, char *serial)
+{
+	struct usb_device *usb_dev;
+	struct usb_dev_handle *usb_handle;
+	int length;
+
+	usb_dev = hid_device_init(devstr);
+	usb_handle = usb_open(usb_dev);
+	length = usb_get_string_simple(usb_handle, usb_dev->descriptor.iSerialNumber, serial, sizeof(serial));
+	usb_close(usb_handle);
+	usb_handle = NULL;
+	usb_dev = NULL;
+
+	return length;
 }
 
 static void *pulserthread(void *arg)
@@ -1535,7 +1560,7 @@ int	i,j,k;
 static void *hidthread(void *arg)
 {
 	unsigned char buf[4],bufsave[4],keyed;
-	char txtmp, fname[200], *s;
+	char txtmp, fname[200], *s, serial[14];
 	int i,j,k,res;
 	struct usb_device *usb_dev;
 	struct usb_dev_handle *usb_handle;
@@ -1570,8 +1595,31 @@ static void *hidthread(void *arg)
 			if (o->index != (usb_dev->descriptor.idProduct & 0xf)) continue;
 			ast_log(LOG_NOTICE,"N1KDO port %d, USB device %s usbradio channel %s\n",
 				usb_dev->descriptor.idProduct & 0xf,s,o->name);
+
 			strcpy(o->devstr,s);
+
 		}
+
+		// Get the serial Number from the device
+		if (strlen(o->serial) > 0)
+		{
+			ast_log(LOG_NOTICE, "Checking for USB device with serial %s\n", o->serial);
+			for(s = usb_device_list; *s; s += strlen(s) + 1)
+			{
+				// Go through the list of usb devices, and get the serial numbers
+				if (get_usb_serial(s, serial) == 0) continue;
+				ast_log(LOG_NOTICE, "Device Serial %s vs %s\n", o->serial, serial);
+				if (strcmp(o->serial, serial) == 0)
+				{
+					// We found a device with the matching serial number
+					// Set the devstr to the matching device
+					ast_log(LOG_NOTICE, "Found device serial %s at %s for %s\n",o->serial, s, o->name);
+					strcpy(o->devstr,s);
+					break;
+				}
+			}
+		}
+
 		/* if our specified one exists in the list */
 		if ((!usb_list_check(o->devstr)) || (!find_desc_usb(o->devstr)))
 		{
@@ -1603,6 +1651,10 @@ static void *hidthread(void *arg)
 				continue;
 			}
 			ast_log(LOG_NOTICE,"Assigned USB device %s to usbradio channel %s\n",s,o->name);
+			if (get_usb_serial(s, serial) > 0) 
+			{
+				strcpy(o->serial, serial);
+			}
 			strcpy(o->devstr,s);
 		}
 		i = usb_get_usbdev(o->devstr);
@@ -1636,7 +1688,6 @@ static void *hidthread(void *arg)
 			o->newname = 1;
 			o->spkrmax = amixer_max(o->devicenum,MIXER_PARAM_SPKR_PLAYBACK_VOL_NEW);
 		}
-
 		usb_handle = usb_open(usb_dev);
 		if (usb_handle == NULL) {
 			usleep(500000);
@@ -1856,19 +1907,19 @@ static void *hidthread(void *arg)
 					/* if CS okay */
 					if (!get_eeprom(usb_handle,o->eeprom))
 					{
-						if (o->eeprom[EEPROM_MAGIC_ADDR] != EEPROM_MAGIC)
+						if (o->eeprom[EEPROM_ADDR_OFF + EEPROM_MAGIC_ADDR] != EEPROM_MAGIC)
 						{
 							ast_log(LOG_NOTICE,"UNSUCCESSFUL: EEPROM MAGIC NUMBER BAD on channel %s\n",o->name);
 						}
 						else
 						{
-							o->rxmixerset = o->eeprom[EEPROM_RXMIXERSET];
-							o->txmixaset = 	o->eeprom[EEPROM_TXMIXASET];
-							o->txmixbset = o->eeprom[EEPROM_TXMIXBSET];
-							memcpy(&o->rxvoiceadj,&o->eeprom[EEPROM_RXVOICEADJ],sizeof(float));
-							memcpy(&o->rxctcssadj,&o->eeprom[EEPROM_RXCTCSSADJ],sizeof(float));
-							o->txctcssadj = o->eeprom[EEPROM_TXCTCSSADJ];
-							o->rxsquelchadj = o->eeprom[EEPROM_RXSQUELCHADJ];
+							o->rxmixerset = o->eeprom[EEPROM_ADDR_OFF + EEPROM_RXMIXERSET];
+							o->txmixaset = 	o->eeprom[EEPROM_ADDR_OFF + EEPROM_TXMIXASET];
+							o->txmixbset = o->eeprom[EEPROM_ADDR_OFF + EEPROM_TXMIXBSET];
+							memcpy(&o->rxvoiceadj,&o->eeprom[EEPROM_ADDR_OFF + EEPROM_RXVOICEADJ],sizeof(float));
+							memcpy(&o->rxctcssadj,&o->eeprom[EEPROM_ADDR_OFF + EEPROM_RXCTCSSADJ],sizeof(float));
+							o->txctcssadj = o->eeprom[EEPROM_ADDR_OFF + EEPROM_TXCTCSSADJ];
+							o->rxsquelchadj = o->eeprom[EEPROM_ADDR_OFF + EEPROM_RXSQUELCHADJ];
 							ast_log(LOG_NOTICE,"EEPROM Loaded on channel %s\n",o->name);
 							mixer_write(o);
 							mult_set(o);    
@@ -3504,6 +3555,7 @@ static int radio_tune(int fd, int argc, char *argv[])
 		ast_cli(fd,"Active radio interface is [%s]\n",usbradio_active);
 		ast_mutex_lock(&usb_dev_lock);
 		ast_cli(fd,"Device String is %s\n",o->devstr);
+		ast_cli(fd,"Device Serial is %s\n",o->serial);
 		ast_mutex_unlock(&usb_dev_lock);
  	  	ast_cli(fd,"Card is %i\n",usb_get_usbdev(o->devstr));
 		ast_cli(fd,"Output A is currently set to ");
@@ -4419,6 +4471,7 @@ static void _menu_print(int fd, struct chan_usbradio_pvt *o)
 	ast_cli(fd,"Active radio interface is [%s]\n",usbradio_active);
 	ast_mutex_lock(&usb_dev_lock);
 	ast_cli(fd,"Device String is %s\n",o->devstr);
+	ast_cli(fd,"Device Serial is %s\n",o->serial);
 	ast_mutex_unlock(&usb_dev_lock);
   	ast_cli(fd,"Card is %i\n",usb_get_usbdev(o->devstr));
 	ast_cli(fd,"Output A is currently set to ");
@@ -4960,6 +5013,7 @@ static void tune_write(struct chan_usbradio_pvt *o)
 
 	fprintf(fp,"; name=%s\n",o->name);
 	fprintf(fp,"; devicenum=%i\n",o->devicenum);
+	fprintf(fp,"devserial=%s\n", o->serial);
 	ast_mutex_lock(&usb_dev_lock);
 	fprintf(fp,"devstr=%s\n",o->devstr);
 	ast_mutex_unlock(&usb_dev_lock);
@@ -4982,13 +5036,13 @@ static void tune_write(struct chan_usbradio_pvt *o)
 			usleep(10000);
 			ast_mutex_lock(&o->eepromlock);
 		}
-		o->eeprom[EEPROM_RXMIXERSET] = o->rxmixerset;
-		o->eeprom[EEPROM_TXMIXASET] = o->txmixaset;
-		o->eeprom[EEPROM_TXMIXBSET] = o->txmixbset;
-		memcpy(&o->eeprom[EEPROM_RXVOICEADJ],&o->rxvoiceadj,sizeof(float));
-		memcpy(&o->eeprom[EEPROM_RXCTCSSADJ],&o->rxctcssadj,sizeof(float));
-		o->eeprom[EEPROM_TXCTCSSADJ] = o->txctcssadj;
-		o->eeprom[EEPROM_RXSQUELCHADJ] = o->rxsquelchadj;
+		o->eeprom[EEPROM_ADDR_OFF + EEPROM_RXMIXERSET] = o->rxmixerset;
+		o->eeprom[EEPROM_ADDR_OFF + EEPROM_TXMIXASET] = o->txmixaset;
+		o->eeprom[EEPROM_ADDR_OFF + EEPROM_TXMIXBSET] = o->txmixbset;
+		memcpy(&o->eeprom[EEPROM_ADDR_OFF + EEPROM_RXVOICEADJ],&o->rxvoiceadj,sizeof(float));
+		memcpy(&o->eeprom[EEPROM_ADDR_OFF + EEPROM_RXCTCSSADJ],&o->rxctcssadj,sizeof(float));
+		o->eeprom[EEPROM_ADDR_OFF + EEPROM_TXCTCSSADJ] = o->txctcssadj;
+		o->eeprom[EEPROM_ADDR_OFF + EEPROM_RXSQUELCHADJ] = o->rxsquelchadj;
 		o->eepromctl = 2;  /* request a write */
 		ast_mutex_unlock(&o->eepromlock);
 	}
@@ -5517,6 +5571,7 @@ static struct chan_usbradio_pvt *store_config(struct ast_config *cfg, char *ctg,
 			M_UINT("rxsquelchadj", o->rxsquelchadj)
 			M_UINT("fever", o->fever)
 			M_STR("devstr", o->devstr)
+			M_STR("devserial", o->serial)
             M_END(;
 			);
 		}
